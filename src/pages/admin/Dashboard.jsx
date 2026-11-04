@@ -1,9 +1,10 @@
+import { useEffect, useState } from "react"
 import { ArrowUpRight, Building2, CalendarDays, ClipboardList, GraduationCap, Megaphone, MessageSquare, Star, Ticket, Users } from "lucide-react"
 import { Link } from "react-router-dom"
 import { AreaChart, DonutChart } from "../../components/admin/Charts"
 import { StatusBadge } from "../../components/admin/ResourceScreen"
-import { activity, adminUsers, announcements, enrollments, events, genreSplit, orders, revenueSeries, workshops } from "../../data/content"
 import { useAppState } from "../../context/AppState"
+import { api } from "../../lib/api"
 import { money } from "../../lib/format"
 import { useTitle } from "../../lib/useTitle"
 
@@ -20,27 +21,48 @@ const shortcuts = [
   { label: "Feedback", to: "/admin/feedback", icon: Star },
 ]
 
-const waiting = [
-  { id: "EV-review", title: "Harbor Session", detail: "Event waiting for approval", to: "/admin/events", status: "Pending approval" },
-  { id: "OA-heartline", title: "Heartline", detail: "Organizer submission", to: "/admin/events", status: "Pending approval" },
-  { id: "ORG-1", title: "New organizer", detail: "Registration request", to: "/admin/organizers", status: "Pending" },
-]
+const emptyDash = {
+  sales: 0,
+  seats: 0,
+  orders: 0,
+  events: 0,
+  pendingEvents: 0,
+  workshops: 0,
+  enrollments: 0,
+  accounts: 0,
+  announcements: 0,
+  revenueSeries: [],
+  genreSplit: [],
+  waiting: [],
+  activity: [],
+  ordersList: [],
+}
 
 export default function Dashboard() {
   useTitle("Admin dashboard")
   const { user } = useAppState()
-  const paid = orders.filter((order) => order.status === "Paid")
-  const sales = paid.reduce((sum, order) => sum + order.total, 0)
-  const seats = paid.reduce((sum, order) => sum + order.qty, 0)
-  const published = announcements.filter((item) => item.status === "Published").length
+  const [dash, setDash] = useState(emptyDash)
+
+  useEffect(() => {
+    api("/api/dashboard").then((data) => setDash({ ...emptyDash, ...data.dashboard, ordersList: data.dashboard?.orders || [] })).catch(() => {})
+  }, [])
+
+  const sales = dash.sales
+  const seats = dash.seats
+  const orders = dash.ordersList
+  const published = dash.announcements
+  const revenueSeries = dash.revenueSeries
+  const genreSplit = dash.genreSplit
+  const waiting = dash.waiting
+  const activity = dash.activity
 
   const stats = [
     { label: "Ticket sales", value: money(sales), note: `${seats} seats sold`, to: "/admin/reports" },
-    { label: "Orders", value: String(orders.length), note: "Platform-wide", to: "/admin/tickets" },
-    { label: "Events", value: String(events.length), note: "1 waiting for approval", to: "/admin/events" },
-    { label: "Workshops", value: String(workshops.length), note: "Registrations open", to: "/admin/workshops" },
-    { label: "Enrollments", value: String(enrollments.length), note: "Course requests", to: "/admin/enrollments" },
-    { label: "Accounts", value: String(adminUsers.length), note: `${published} announcements live`, to: "/admin/users" },
+    { label: "Orders", value: String(dash.orders), note: "Platform-wide", to: "/admin/tickets" },
+    { label: "Events", value: String(dash.events), note: `${dash.pendingEvents} waiting for approval`, to: "/admin/events" },
+    { label: "Workshops", value: String(dash.workshops), note: "Registrations open", to: "/admin/workshops" },
+    { label: "Enrollments", value: String(dash.enrollments), note: "Course requests", to: "/admin/enrollments" },
+    { label: "Accounts", value: String(dash.accounts), note: `${published} announcements live`, to: "/admin/users" },
   ]
 
   return (
@@ -48,7 +70,7 @@ export default function Dashboard() {
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-300">Admin</p>
       <h1 className="mt-1 font-display text-3xl text-white">Dashboard</h1>
       <p className="mt-2 max-w-2xl text-sm text-zinc-400">
-        {`${user?.name || "Admin"}, this is the platform overview. Sample figures for the design. Open a card to manage that area.`}
+        {`${user?.name || "Admin"}, this is the platform overview from the database. Open a card to review that area.`}
       </p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

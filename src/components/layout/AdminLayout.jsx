@@ -14,8 +14,9 @@ import {
   UserRound,
   Users,
 } from "lucide-react"
+import { useEffect, useState } from "react"
 import StudioShell from "./StudioShell"
-import { notifications } from "../../data/content"
+import { api } from "../../lib/api"
 
 const groups = [
   {
@@ -59,5 +60,11 @@ const groups = [
 ]
 
 export default function AdminLayout() {
-  return <StudioShell homeTo="/admin" kicker="Admin dashboard" groups={groups} profileTo="/admin/profile" role="Admin" notes={notifications} />
+  const [notes, setNotes] = useState([])
+
+  useEffect(() => {
+    api("/api/notifications").then((data) => setNotes(data.notifications || [])).catch(() => setNotes([]))
+  }, [])
+
+  return <StudioShell homeTo="/admin" kicker="Admin dashboard" groups={groups} profileTo="/admin/profile" role="Admin" notes={notes} />
 }

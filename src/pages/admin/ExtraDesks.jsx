@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { api } from "../../lib/api"
 import ResourceScreen, { Cell, StatusBadge } from "../../components/admin/ResourceScreen"
 import ApprovalQueue, { ApprovalStatus } from "../../components/admin/ApprovalQueue"
@@ -6,25 +6,21 @@ import { Td } from "../../components/ui/DataTable"
 import { AreaChart } from "../../components/admin/Charts"
 import Button from "../../components/ui/Button"
 import { TextField } from "../../components/ui/Field"
-import { activity, enrollments, orders, revenueSeries, workshops } from "../../data/content"
-import { sampleReviews } from "../../data/desk"
 import { useAppState } from "../../context/AppState"
 import { money } from "../../lib/format"
 import { useTitle } from "../../lib/useTitle"
-
-const complaints = [
-  ...sampleReviews,
-  { id: "RV-3", target: "Community post", kind: "Complaint", rating: 1, text: "Reported a comment for harassment.", date: "2026-10-11" },
-]
 
 export function ManageFeedback() {
   useTitle("Feedback")
   return (
     <ResourceScreen
       title="Feedback and reviews"
-      description="Reviews for events, workshops, and courses, plus complaints. Removing a row hides it from this preview."
+      description="Reviews and enquiries stored by members. This desk reads them."
       createLabel="Add note"
-      seed={complaints}
+      endpoint="/api/reviews"
+      listKey="reviews"
+      readOnly
+      seed={[]}
       searchKeys={["target", "kind", "text"]}
       filters={[
         { key: "kind", label: "Kinds", options: ["Event", "Workshop", "Course", "Complaint"] },
@@ -85,9 +81,16 @@ export function ManageReports() {
   const { notify } = useAppState()
   const [report, setReport] = useState(null)
   const [busy, setBusy] = useState(false)
-  const paid = orders.filter((order) => order.status === "Paid")
-  const sales = paid.reduce((sum, order) => sum + order.total, 0)
-  const seats = paid.reduce((sum, order) => sum + order.qty, 0)
+  const [dash, setDash] = useState({ sales: 0, seats: 0, registrations: 0, enrollments: 0, revenueSeries: [], activity: [] })
+
+  useEffect(() => {
+    api("/api/dashboard").then((data) => setDash(data.dashboard || {})).catch(() => {})
+  }, [])
+
+  const sales = dash.sales || 0
+  const seats = dash.seats || 0
+  const revenueSeries = dash.revenueSeries?.length ? dash.revenueSeries : [{ label: "—", value: 0 }, { label: "—", value: 0 }]
+  const activity = dash.activity || []
 
   async function generate() {
     setBusy(true)
@@ -107,7 +110,7 @@ export function ManageReports() {
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-300">Studio</p>
       <h1 className="mt-1 font-display text-3xl text-white">Reports</h1>
       <p className="mt-2 max-w-2xl text-sm text-zinc-400">
-        Generate an analysis of accounts, event approvals, and ticket approvals. The sales chart below stays the studio snapshot.
+        Generate an analysis of accounts, event approvals, and ticket approvals. Sales figures come from stored orders.
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
         <Button onClick={generate} disabled={busy}>{busy ? "Generating…" : "Generate report"}</Button>
@@ -153,8 +156,8 @@ export function ManageReports() {
         {[
           ["Ticket sales", money(sales)],
           ["Seats sold", String(seats)],
-          ["Workshop registrations", String(workshops.length)],
-          ["Course enrollments", String(enrollments.length)],
+          ["Workshop registrations", String(dash.registrations || 0)],
+          ["Course enrollments", String(dash.enrollments || 0)],
         ].map(([label, value]) => (
           <article key={label} className="rounded-2xl border border-white/10 bg-panel p-4">
             <p className="text-sm text-zinc-400">{label}</p>
@@ -219,10 +222,15 @@ export function AdminProfile() {
     city: user?.city || "",
   })
 
-  function save(event) {
+  async function save(event) {
     event.preventDefault()
-    setUser((current) => (current ? { ...current, ...form } : current))
-    notify("Admin profile updated on this page.")
+    try {
+      const data = await api("/api/me", { method: "PATCH", body: form })
+      setUser(data.user)
+      notify("Admin profile saved.")
+    } catch (error) {
+      notify(error.message)
+    }
   }
 
   return (

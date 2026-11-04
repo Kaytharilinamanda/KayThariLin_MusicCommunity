@@ -1,12 +1,17 @@
+import { useEffect, useState } from "react"
 import Container from "../components/ui/Container"
 import PageHero from "../components/ui/PageHero"
-import { announcements } from "../data/content"
+import { api } from "../lib/api"
 import { longDate } from "../lib/format"
 import { useTitle } from "../lib/useTitle"
 
 export default function Announcements() {
   useTitle("Announcements")
-  const published = announcements.filter((item) => item.status === "Published")
+  const [published, setPublished] = useState([])
+
+  useEffect(() => {
+    api("/api/announcements").then((data) => setPublished(data.announcements || [])).catch(() => setPublished([]))
+  }, [])
 
   return (
     <>

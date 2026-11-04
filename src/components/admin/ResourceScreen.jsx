@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Search } from "lucide-react"
 import ActionMenu from "../ui/ActionMenu"
 import Badge from "../ui/Badge"
@@ -6,6 +6,7 @@ import Button from "../ui/Button"
 import Modal from "../ui/Modal"
 import { SelectField, TextArea, TextField } from "../ui/Field"
 import { useAppState } from "../../context/AppState"
+import { api } from "../../lib/api"
 import { cn, statusTone } from "../../lib/format"
 
 function blankForm(fields) {
@@ -33,9 +34,17 @@ export default function ResourceScreen({
   filters = [],
   renderCells,
   detail,
+  endpoint = "",
+  listKey = "items",
+  readOnly = false,
 }) {
   const { notify } = useAppState()
-  const [rows, setRows] = useState(seed)
+  const [rows, setRows] = useState(seed || [])
+
+  useEffect(() => {
+    if (!endpoint) return
+    api(endpoint).then((data) => setRows(data[listKey] || [])).catch((error) => notify(error.message))
+  }, [endpoint, listKey, notify])
   const [query, setQuery] = useState("")
   const [activeFilters, setActiveFilters] = useState({})
   const [editing, setEditing] = useState(null)
@@ -84,20 +93,45 @@ export default function ResourceScreen({
       if (field.type === "number") payload[field.name] = Number(form[field.name]) || 0
     })
 
-    if (editing.mode === "create") {
-      setRows((current) => [{ id: `local-${crypto.randomUUID().slice(0, 8)}`, ...payload }, ...current])
-      notify(`${title.slice(0, -1) || "Item"} added to this preview.`)
-    } else {
-      setRows((current) => current.map((row) => (row.id === editing.id ? { ...row, ...payload } : row)))
-      notify("Changes kept in this preview.")
+    if (!endpoint) {
+      if (editing.mode === "create") {
+        setRows((current) => [{ id: `local-${crypto.randomUUID().slice(0, 8)}`, ...payload }, ...current])
+        notify("Saved on this page.")
+      } else {
+        setRows((current) => current.map((row) => (row.id === editing.id ? { ...row, ...payload } : row)))
+        notify("Changes saved on this page.")
+      }
+      setEditing(null)
+      return
     }
-    setEditing(null)
+
+    const request = editing.mode === "create"
+      ? api(endpoint, { method: "POST", body: payload })
+      : api(`${endpoint}/${editing.id}`, { method: "PATCH", body: payload })
+    request
+      .then((data) => {
+        const saved = data.review || data.announcement || data.post || data.item || { id: editing.id, ...payload }
+        setRows((current) => (editing.mode === "create" ? [saved, ...current] : current.map((row) => (row.id === editing.id ? { ...row, ...saved } : row))))
+        notify("Saved.")
+        setEditing(null)
+      })
+      .catch((error) => notify(error.message))
   }
 
   function confirmRemove() {
-    setRows((current) => current.filter((row) => row.id !== removing.id))
-    notify("Removed from this preview.")
-    setRemoving(null)
+    if (!endpoint) {
+      setRows((current) => current.filter((row) => row.id !== removing.id))
+      notify("Removed from this page.")
+      setRemoving(null)
+      return
+    }
+    api(`${endpoint}/${removing.id}`, { method: "DELETE" })
+      .then(() => {
+        setRows((current) => current.filter((row) => row.id !== removing.id))
+        notify("Removed.")
+        setRemoving(null)
+      })
+      .catch((error) => notify(error.message))
   }
 
   return (
@@ -108,7 +142,7 @@ export default function ResourceScreen({
           <h1 className="mt-1 font-display text-3xl font-semibold text-white">{title}</h1>
           <p className="mt-2 max-w-2xl text-sm text-zinc-400">{description}</p>
         </div>
-        <Button onClick={openCreate}>{createLabel}</Button>
+        {!readOnly && <Button onClick={openCreate}>{createLabel}</Button>}
       </div>
 
       <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-white/10 bg-panel p-3 lg:flex-row lg:items-center">
@@ -163,11 +197,15 @@ export default function ResourceScreen({
                 {renderCells(row)}
                 <td className="px-4 py-3 text-right">
                   <ActionMenu
-                    items={[
-                      { label: "View", onClick: () => setViewing(row) },
-                      { label: "Edit", onClick: () => openEdit(row) },
-                      { label: "Remove", danger: true, onClick: () => setRemoving(row) },
-                    ]}
+                    items={
+                      readOnly
+                        ? [{ label: "View", onClick: () => setViewing(row) }]
+                        : [
+                            { label: "View", onClick: () => setViewing(row) },
+                            { label: "Edit", onClick: () => openEdit(row) },
+                            { label: "Remove", danger: true, onClick: () => setRemoving(row) },
+                          ]
+                    }
                   />
                 </td>
               </tr>
@@ -182,7 +220,7 @@ export default function ResourceScreen({
       <Modal
         open={Boolean(editing)}
         title={editing?.mode === "edit" ? `Edit ${title.slice(0, -1) || "item"}` : createLabel}
-        subtitle="This stays in the browser preview."
+        subtitle={endpoint ? "This is stored in the database." : "This stays on this page."}
         onClose={() => setEditing(null)}
       >
         <form className="grid gap-4" onSubmit={save}>
@@ -234,7 +272,7 @@ export default function ResourceScreen({
         )}
       </Modal>
 
-      <Modal open={Boolean(removing)} title="Remove this record?" subtitle="It disappears from the preview only." onClose={() => setRemoving(null)}>
+      <Modal open={Boolean(removing)} title="Remove this record?" subtitle={endpoint ? "This deletes it from the database." : "It disappears from this page."} onClose={() => setRemoving(null)}>
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={() => setRemoving(null)}>
             Keep it

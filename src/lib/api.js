@@ -7,6 +7,7 @@ export async function api(path, { method = "GET", body } = {}) {
     response = await fetch(path, {
       method,
       headers: {
+        Accept: "application/json",
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },

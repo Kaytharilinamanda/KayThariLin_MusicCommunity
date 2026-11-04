@@ -9,6 +9,7 @@ import Modal from "../components/ui/Modal"
 import { TextField } from "../components/ui/Field"
 import EventCard from "../components/cards/EventCard"
 import { events as catalogEvents } from "../data/content"
+import { api } from "../lib/api"
 import { loadPublishedEvents } from "../lib/catalog"
 import { useAppState } from "../context/AppState"
 import { userGate } from "../lib/account"
@@ -45,7 +46,7 @@ export default function EventDetail() {
   const [done, setDone] = useState(false)
   const [guest, setGuest] = useState({ name: "", email: "" })
   const [errors, setErrors] = useState({})
-  const { notify, user, addBooking } = useAppState()
+  const { notify, user } = useAppState()
   const navigate = useNavigate()
 
   const tickets = event?.tickets || []
@@ -83,7 +84,7 @@ export default function EventDetail() {
     setOpen(true)
   }
 
-  function reserve(formEvent) {
+  async function reserve(formEvent) {
     formEvent.preventDefault()
     if (!userGate(user, navigate, notify, `/events/${event.id}`)) return
     const next = {}
@@ -91,15 +92,15 @@ export default function EventDetail() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guest.email)) next.email = "Use a valid email address."
     setErrors(next)
     if (Object.keys(next).length) return
-    addBooking("tickets", {
-      id: `NR-${Date.now().toString().slice(-6)}`,
-      event: event.title,
-      tier: tier.name,
-      qty,
-      total,
-      status: "Paid",
-      date: new Date().toISOString().slice(0, 10),
-    })
+    try {
+      await api("/api/orders", {
+        method: "POST",
+        body: { eventId: event.id, ticketId: tier.id, qty, name: guest.name.trim(), email: guest.email.trim() },
+      })
+    } catch (error) {
+      notify(error.message)
+      return
+    }
     setDone(true)
     setOpen(false)
     notify("Tickets reserved. They are listed under your account.")

@@ -1,11 +1,11 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Heart, ImagePlus, MessageCircle, Share2 } from "lucide-react"
 import Button from "../components/ui/Button"
 import Container from "../components/ui/Container"
 import Cover from "../components/ui/Cover"
 import PageHero from "../components/ui/PageHero"
-import { members, posts as seedPosts, topics } from "../data/content"
+import { api } from "../lib/api"
 import { useAppState } from "../context/AppState"
 import { useTitle } from "../lib/useTitle"
 import SignInPrompt from "../components/auth/SignInPrompt"
@@ -29,74 +29,61 @@ export default function Community() {
     if (!user) navigate("/login", { state: { from: "/community" } })
     return false
   }
-  const [feed, setFeed] = useState(seedPosts)
+  const [feed, setFeed] = useState([])
+  const [topics, setTopics] = useState([])
+  const [members, setMembers] = useState([])
   const [draft, setDraft] = useState("")
   const [photo, setPhoto] = useState("")
   const [picker, setPicker] = useState(false)
-  const [liked, setLiked] = useState({})
   const [openComments, setOpenComments] = useState({})
   const [commentDrafts, setCommentDrafts] = useState({})
-  const [following, setFollowing] = useState({})
 
-  function publish(event) {
+  useEffect(() => {
+    api("/api/posts").then((data) => setFeed(data.posts || [])).catch(() => setFeed([]))
+    api("/api/topics").then((data) => setTopics(data.topics || [])).catch(() => setTopics([]))
+    api("/api/members").then((data) => setMembers(data.members || [])).catch(() => setMembers([]))
+  }, [])
+
+  async function publish(event) {
     event.preventDefault()
     if (!asUser()) return
     if (!draft.trim()) {
       notify("Write something before posting.")
       return
     }
-    const author = user?.name || "Guest user"
-    setFeed((current) => [
-      {
-        id: `local-${crypto.randomUUID().slice(0, 8)}`,
-        author,
-        handle: "@you",
-        avatar: user ? "/avatars/sam.svg" : "/avatars/james.svg",
-        role: "Member",
-        time: "Just now",
-        topic: "Community",
-        text: draft.trim(),
-        image: photo,
-        likes: 0,
-        comments: [],
-      },
-      ...current,
-    ])
-    setDraft("")
-    setPhoto("")
-    setPicker(false)
-    notify("Posted to this preview feed.")
+    try {
+      const data = await api("/api/posts", { method: "POST", body: { text: draft.trim(), image: photo, topic: "Community" } })
+      setFeed((current) => [data.post, ...current])
+      setDraft("")
+      setPhoto("")
+      setPicker(false)
+      notify("Posted to the community.")
+    } catch (error) {
+      notify(error.message)
+    }
   }
 
-  function toggleLike(post) {
+  async function toggleLike(post) {
     if (!asUser()) return
-    setLiked((current) => ({ ...current, [post.id]: !current[post.id] }))
+    try {
+      const data = await api(`/api/posts/${post.id}/like`, { method: "POST" })
+      setFeed((current) => current.map((item) => (item.id === post.id ? data.post : item)))
+    } catch (error) {
+      notify(error.message)
+    }
   }
 
-  function addComment(postId) {
+  async function addComment(postId) {
     if (!asUser()) return
     const text = (commentDrafts[postId] || "").trim()
     if (!text) return
-    setFeed((current) =>
-      current.map((post) =>
-        post.id === postId
-          ? {
-              ...post,
-              comments: [
-                ...post.comments,
-                {
-                  id: crypto.randomUUID(),
-                  author: user?.name || "Guest",
-                  avatar: "/avatars/sam.svg",
-                  text,
-                  time: "Just now",
-                },
-              ],
-            }
-          : post,
-      ),
-    )
-    setCommentDrafts((current) => ({ ...current, [postId]: "" }))
+    try {
+      const data = await api(`/api/posts/${postId}/comments`, { method: "POST", body: { text } })
+      setFeed((current) => current.map((item) => (item.id === postId ? data.post : item)))
+      setCommentDrafts((current) => ({ ...current, [postId]: "" }))
+    } catch (error) {
+      notify(error.message)
+    }
   }
 
   return (
@@ -164,8 +151,8 @@ export default function Community() {
           )}
 
           {feed.map((post) => {
-            const isLiked = Boolean(liked[post.id])
-            const likeCount = post.likes + (isLiked ? 1 : 0)
+            const isLiked = Boolean(post.liked)
+            const likeCount = post.likes
             const commentsOpen = Boolean(openComments[post.id])
             return (
               <article key={post.id} className="rounded-3xl border border-white/10 bg-panel p-4 sm:p-5">
@@ -199,7 +186,10 @@ export default function Community() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => notify("Link copied for this preview.")}
+                    onClick={() => {
+                      navigator.clipboard?.writeText(window.location.href)
+                      notify("Link copied.")
+                    }}
                     className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm text-zinc-300 hover:bg-white/5"
                   >
                     <Share2 className="h-4 w-4" /> Share
@@ -248,13 +238,18 @@ export default function Community() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     if (!asUser()) return
-                    setFollowing((current) => ({ ...current, [member.id]: !current[member.id] }))
+                    try {
+                      const data = await api(`/api/members/${member.id}/follow`, { method: "POST" })
+                      setMembers((current) => current.map((item) => (item.id === member.id ? { ...item, following: data.following } : item)))
+                    } catch (error) {
+                      notify(error.message)
+                    }
                   }}
                   className="rounded-full border border-white/15 px-3 py-1 text-xs text-zinc-200 hover:bg-white/8"
                 >
-                  {following[member.id] ? "Following" : "Follow"}
+                  {member.following ? "Following" : "Follow"}
                 </button>
               </li>
             ))}

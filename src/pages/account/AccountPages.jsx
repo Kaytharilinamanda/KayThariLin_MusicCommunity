@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Drum, GraduationCap, Star, Ticket, UserRound } from "lucide-react"
 import Container from "../../components/ui/Container"
 import Button from "../../components/ui/Button"
@@ -7,7 +7,7 @@ import { DataTable, Td } from "../../components/ui/DataTable"
 import { StatusBadge } from "../../components/admin/ResourceScreen"
 import { TextArea, TextField } from "../../components/ui/Field"
 import { useAppState } from "../../context/AppState"
-import { sampleCourses, sampleOrders, sampleReviews, sampleWorkshops } from "../../data/desk"
+import { api } from "../../lib/api"
 import { cn, money } from "../../lib/format"
 import { roleLabel, statusLabel } from "../../lib/account"
 import { useTitle } from "../../lib/useTitle"
@@ -63,17 +63,22 @@ export function AccountProfile() {
     city: user?.city || "",
   })
 
-  function save(event) {
+  async function save(event) {
     event.preventDefault()
-    setUser((current) => (current ? { ...current, ...form } : current))
-    notify("Profile updated on this page. Your email stays the one you registered.")
+    try {
+      const data = await api("/api/me", { method: "PATCH", body: form })
+      setUser(data.user)
+      notify("Profile saved. Your email stays the one you registered.")
+    } catch (error) {
+      notify(error.message)
+    }
   }
 
   return (
     <section>
       <h1 className="font-display text-3xl text-white">Profile</h1>
       <p className="mt-2 max-w-2xl text-sm text-zinc-400">
-        {roleLabel(user?.role)} · {statusLabel(user?.status)}. Name, phone, and city on this form stay in the browser. The account itself is stored in the database.
+        {roleLabel(user?.role)} · {statusLabel(user?.status)}. Name, phone, and city are saved to your account.
       </p>
       <form className="mt-6 max-w-lg space-y-4 rounded-3xl border border-white/10 bg-panel p-5" onSubmit={save}>
         <TextField id="profile-name" label="Name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
@@ -86,27 +91,30 @@ export function AccountProfile() {
   )
 }
 
-function mergeStatus(rows, overrides) {
-  return rows.map((row) => ({ ...row, status: overrides[row.id] || row.status }))
-}
-
 export function AccountOrders() {
   useTitle("Ticket orders")
-  const { myBookings, updateBooking, notify } = useAppState()
-  const [overrides, setOverrides] = useState({})
-  const rows = mergeStatus([...myBookings.tickets, ...sampleOrders], overrides)
+  const { notify } = useAppState()
+  const [rows, setRows] = useState([])
 
-  function mark(row, status, message) {
-    if (myBookings.tickets.some((item) => item.id === row.id)) updateBooking("tickets", row.id, { status })
-    setOverrides((current) => ({ ...current, [row.id]: status }))
-    notify(message)
+  useEffect(() => {
+    api("/api/orders").then((data) => setRows(data.orders || [])).catch((error) => notify(error.message))
+  }, [notify])
+
+  async function mark(row, status, message) {
+    try {
+      const data = await api(`/api/orders/${row.recordId}`, { method: "PATCH", body: { status } })
+      setRows((current) => current.map((item) => (item.recordId === row.recordId ? data.order : item)))
+      notify(message)
+    } catch (error) {
+      notify(error.message)
+    }
   }
 
   return (
     <section>
       <h1 className="font-display text-3xl text-white">Ticket orders</h1>
       <p className="mt-2 mb-6 max-w-2xl text-sm text-zinc-400">
-        Orders you reserve while signed in appear first. The other rows are sample bookings so the page has history before your first purchase. Payment stays on this design page.
+        Reservations you confirm are stored with your account. Cancel returns the seats. A refund request is recorded for the organizer.
       </p>
       <DataTable
         columns={["Order", "Tickets", "Total", "Status", ""]}
@@ -142,14 +150,17 @@ export function AccountOrders() {
 
 export function AccountWorkshops() {
   useTitle("Workshop registrations")
-  const { myBookings, updateBooking, notify } = useAppState()
-  const [overrides, setOverrides] = useState({})
-  const rows = mergeStatus([...myBookings.workshops, ...sampleWorkshops], overrides)
+  const { notify } = useAppState()
+  const [rows, setRows] = useState([])
+
+  useEffect(() => {
+    api("/api/workshop-registrations").then((data) => setRows(data.registrations || [])).catch((error) => notify(error.message))
+  }, [notify])
 
   return (
     <section>
       <h1 className="font-display text-3xl text-white">Workshop registrations</h1>
-      <p className="mt-2 mb-6 max-w-2xl text-sm text-zinc-400">Registrations from the workshop pages appear here, with sample seats underneath.</p>
+      <p className="mt-2 mb-6 max-w-2xl text-sm text-zinc-400">Registrations from the workshop pages are stored on your account.</p>
       <DataTable
         columns={["Workshop", "When", "City", "Status", ""]}
         rows={rows}
@@ -164,10 +175,14 @@ export function AccountWorkshops() {
               {row.status === "Confirmed" && (
                 <Button
                   variant="secondary"
-                  onClick={() => {
-                    if (myBookings.workshops.some((item) => item.id === row.id)) updateBooking("workshops", row.id, { status: "Cancelled" })
-                    setOverrides((current) => ({ ...current, [row.id]: "Cancelled" }))
-                    notify("Workshop registration cancelled on this page.")
+                  onClick={async () => {
+                    try {
+                      const data = await api(`/api/workshop-registrations/${row.id}`, { method: "PATCH", body: { status: "Cancelled" } })
+                      setRows((current) => current.map((item) => (item.id === row.id ? data.registration : item)))
+                      notify("Workshop registration cancelled.")
+                    } catch (error) {
+                      notify(error.message)
+                    }
                   }}
                 >
                   Cancel
@@ -183,14 +198,18 @@ export function AccountWorkshops() {
 
 export function AccountCourses() {
   useTitle("Course enrollments")
-  const { myBookings } = useAppState()
-  const rows = [...myBookings.courses, ...sampleCourses]
+  const { notify } = useAppState()
+  const [rows, setRows] = useState([])
+
+  useEffect(() => {
+    api("/api/enrollments").then((data) => setRows(data.enrollments || [])).catch((error) => notify(error.message))
+  }, [notify])
 
   return (
     <section>
       <h1 className="font-display text-3xl text-white">Course enrollments</h1>
       <p className="mt-2 mb-6 max-w-2xl text-sm text-zinc-400">
-        Enrollment requests from a course page land here. Schools, fees, and schedules stay on the course pages.
+        Enrollment requests from a course page are stored here. Schools, fees, and schedules stay on the course pages.
       </p>
       <DataTable
         columns={["Course", "Learning center", "Date", "Status"]}
@@ -211,32 +230,34 @@ export function AccountCourses() {
 
 export function AccountFeedback() {
   useTitle("Feedback")
-  const { myBookings, addBooking, notify } = useAppState()
+  const { notify } = useAppState()
   const [form, setForm] = useState({ target: "One Night", kind: "Event", rating: "5", text: "" })
-  const rows = [...myBookings.reviews, ...sampleReviews]
+  const [rows, setRows] = useState([])
 
-  function submit(event) {
+  useEffect(() => {
+    api("/api/reviews").then((data) => setRows(data.reviews || [])).catch((error) => notify(error.message))
+  }, [notify])
+
+  async function submit(event) {
     event.preventDefault()
     if (form.text.trim().length < 4) {
       notify("Add a short note before sending feedback.")
       return
     }
-    addBooking("reviews", {
-      id: `RV-${Date.now().toString().slice(-6)}`,
-      target: form.target,
-      kind: form.kind,
-      rating: Number(form.rating),
-      text: form.text.trim(),
-      date: new Date().toISOString().slice(0, 10),
-    })
-    setForm((current) => ({ ...current, text: "" }))
-    notify("Feedback saved on this page.")
+    try {
+      const data = await api("/api/reviews", { method: "POST", body: { ...form, rating: Number(form.rating) } })
+      setRows((current) => [data.review, ...current])
+      setForm((current) => ({ ...current, text: "" }))
+      notify("Feedback saved.")
+    } catch (error) {
+      notify(error.message)
+    }
   }
 
   return (
     <section>
       <h1 className="font-display text-3xl text-white">Feedback</h1>
-      <p className="mt-2 max-w-2xl text-sm text-zinc-400">Reviews for events, workshops, and courses. New notes stay in this browser session.</p>
+      <p className="mt-2 max-w-2xl text-sm text-zinc-400">Reviews for events, workshops, and courses. New notes are stored with your account.</p>
       <form className="mt-6 grid gap-4 rounded-3xl border border-white/10 bg-panel p-5 sm:grid-cols-2" onSubmit={submit}>
         <TextField id="fb-target" label="Event, workshop, or course" value={form.target} onChange={(event) => setForm((current) => ({ ...current, target: event.target.value }))} />
         <label className="block text-sm">
