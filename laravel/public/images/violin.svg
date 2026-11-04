@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 168" fill="none" role="img" aria-label="Violin">
+  <circle cx="40" cy="14" r="8" fill="#f6c9cb"/>
+  <rect x="34" y="18" width="12" height="16" rx="2" fill="#e7a4a8"/>
+  <rect x="26" y="22" width="10" height="3" rx="1.5" fill="#f6c9cb"/>
+  <rect x="44" y="22" width="10" height="3" rx="1.5" fill="#f6c9cb"/>
+  <rect x="26" y="28" width="10" height="3" rx="1.5" fill="#f6c9cb"/>
+  <rect x="44" y="28" width="10" height="3" rx="1.5" fill="#f6c9cb"/>
+  <rect x="36" y="34" width="8" height="30" rx="1" fill="#e7a4a8"/>
+  <path d="M40 64c-14 0-24 8-24 20 0 8 8 12 8 20 0 8-10 14-10 28 0 18 12 32 26 32s26-14 26-32c0-14-10-20-10-28 0-8 8-12 8-20 0-12-10-20-24-20z" fill="#f6c9cb"/>
+  <path d="M30 104c2 8 2 16 0 24" stroke="#6e121e" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M50 104c-2 8-2 16 0 24" stroke="#6e121e" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M32 122h16" stroke="#6e121e" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M37 20v128M43 20v128" stroke="#8e1a28" stroke-width="1.2"/>
+  <rect x="36" y="136" width="8" height="12" rx="1" fill="#e7a4a8"/>
+</svg>
