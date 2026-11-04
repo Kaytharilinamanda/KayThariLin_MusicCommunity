@@ -9,7 +9,7 @@ export default function ManageUsers() {
     <>
     <LiveAccounts
       title="Registered accounts"
-      text="These rows come from the account database. Approve organizers, or suspend and activate user accounts. The directory underneath is preview data for the rest of the studio."
+      text="Create, edit, and delete user and organizer accounts. The studio admin account stays singular and is not edited here. The directory underneath is preview data for the rest of the studio."
     />
     <ResourceScreen
       title="Preview directory"

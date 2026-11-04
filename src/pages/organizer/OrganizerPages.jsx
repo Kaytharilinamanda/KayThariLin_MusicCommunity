@@ -1,32 +1,34 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   BadgeDollarSign,
+  Building2,
   CalendarDays,
+  ClipboardList,
+  Drum,
+  GraduationCap,
   LayoutDashboard,
+  Tags,
   Megaphone,
   MessageSquare,
   Ticket,
-  Users,
   UserRound,
   BarChart3,
-  Undo2,
   Image,
 } from "lucide-react"
 import StudioShell from "../../components/layout/StudioShell"
 import Button from "../../components/ui/Button"
 import { DataTable, Stat, Td } from "../../components/ui/DataTable"
 import { StatusBadge } from "../../components/admin/ResourceScreen"
-import { TextArea, TextField } from "../../components/ui/Field"
+import { SelectField, TextArea, TextField } from "../../components/ui/Field"
 import { useAppState } from "../../context/AppState"
 import {
   organizerAds,
   organizerAnnouncements,
   organizerEnquiries,
-  organizerEvents,
   organizerOrders,
-  organizerRefunds,
-  organizerTickets,
 } from "../../data/desk"
+import { categories } from "../../data/content"
+import { api } from "../../lib/api"
 import { money } from "../../lib/format"
 import { statusLabel } from "../../lib/account"
 import { useTitle } from "../../lib/useTitle"
@@ -49,11 +51,19 @@ const groups = [
     ],
   },
   {
+    label: "Programs",
+    items: [
+      { to: "/organizer/workshops", label: "Workshops", icon: Drum },
+      { to: "/organizer/courses", label: "Courses", icon: GraduationCap },
+      { to: "/organizer/categories", label: "Course categories", icon: Tags },
+      { to: "/organizer/centers", label: "Music centers", icon: Building2 },
+      { to: "/organizer/enrollments", label: "Enrollments", icon: ClipboardList },
+    ],
+  },
+  {
     label: "Box office",
     items: [
       { to: "/organizer/orders", label: "Orders", icon: BadgeDollarSign },
-      { to: "/organizer/attendees", label: "Attendees", icon: Users },
-      { to: "/organizer/refunds", label: "Refunds", icon: Undo2 },
       { to: "/organizer/enquiries", label: "Enquiries", icon: MessageSquare },
     ],
   },
@@ -66,7 +76,6 @@ const groups = [
 const notes = [
   { id: "o1", title: "New ticket order", detail: "One Night · 2 seats", time: "18m" },
   { id: "o2", title: "Enquiry waiting", detail: "Seating question on the floor plan", time: "3h" },
-  { id: "o3", title: "Refund requested", detail: "Order pending your review", time: "1d" },
 ]
 
 function useSessionList(key, seed) {
@@ -102,7 +111,7 @@ export function OrganizerLayout() {
       notice={
         user?.status === "pending" ? (
           <p className="mb-6 rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-            Your organizer registration is waiting for the studio admin. You can prepare events here. Publishing stays on this design page until the account is approved.
+            Your organizer registration is waiting for the studio admin. You can still submit events and tickets. They stay pending, and an approved show is public only after this account is approved too.
           </p>
         ) : null
       }
@@ -121,15 +130,20 @@ function PageIntro({ title, text }) {
 
 export function OrganizerHome() {
   useTitle("Organizer")
-  const [events] = useSessionList("harmony-org-events", organizerEvents)
+  const [events, setEvents] = useState([])
   const [orders] = useSessionList("harmony-org-orders", organizerOrders)
   const sold = orders.filter((row) => row.status === "Paid").reduce((sum, row) => sum + row.total, 0)
   const seats = orders.reduce((sum, row) => sum + row.qty, 0)
+
+  useEffect(() => {
+    api("/api/events").then((data) => setEvents(data.events || [])).catch(() => setEvents([]))
+  }, [])
+
   return (
     <section>
       <PageIntro title="Your shows" text="Ticket sales, bookings, and attendance for the events on this organizer account." />
       <div className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Events" value={events.length} detail={`${events.filter((row) => row.status === "Published").length} published`} />
+        <Stat label="Events" value={events.length} detail={`${events.filter((row) => row.status === "Approved").length} approved`} />
         <Stat label="Ticket sales" value={money(sold)} detail="Paid orders in this preview" />
         <Stat label="Seats booked" value={seats} detail="Across your sample orders" />
       </div>
@@ -171,67 +185,102 @@ export function OrganizerProfile() {
 const blankEvent = {
   title: "",
   artist: "",
+  category: "Pop",
   city: "Yangon",
   venue: "",
+  address: "",
   date: "",
   time: "7:00 PM",
   price: "",
-  quantity: "",
-  salesStart: "",
-  salesEnd: "",
+  blurb: "",
 }
 
 export function OrganizerEvents() {
   useTitle("Organizer events")
   const { notify } = useAppState()
-  const [events, setEvents] = useSessionList("harmony-org-events", organizerEvents)
+  const [events, setEvents] = useState([])
+  const [error, setError] = useState("")
   const [form, setForm] = useState(blankEvent)
   const [editing, setEditing] = useState("")
+
+  async function load() {
+    try {
+      const data = await api("/api/events")
+      setEvents(data.events || [])
+      setError("")
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  useEffect(() => {
+    load()
+  }, [])
 
   function update(key, value) {
     setForm((current) => ({ ...current, [key]: value }))
   }
 
-  function save(event) {
+  async function save(event) {
     event.preventDefault()
-    if (!form.title.trim() || !form.artist.trim() || !form.venue.trim() || !form.date) {
-      notify("Add a title, artist, venue, and date.")
-      return
+    try {
+      if (editing) {
+        await api(`/api/events/${editing}`, { method: "PATCH", body: form })
+        notify("Event updated and sent back for approval.")
+      } else {
+        await api("/api/events", { method: "POST", body: form })
+        notify("Event submitted for admin approval.")
+      }
+      setForm(blankEvent)
+      setEditing("")
+      load()
+    } catch (err) {
+      notify(err.message)
     }
-    const row = {
-      ...form,
-      price: Number(form.price) || 0,
-      quantity: Number(form.quantity) || 0,
-      status: "Pending approval",
+  }
+
+  async function remove(row) {
+    if (!window.confirm(`Delete ${row.title}? Its tickets are deleted with it.`)) return
+    try {
+      await api(`/api/events/${row.id}`, { method: "DELETE" })
+      if (editing === row.id) {
+        setEditing("")
+        setForm(blankEvent)
+      }
+      notify("Event deleted.")
+      load()
+    } catch (err) {
+      notify(err.message)
     }
-    if (editing) {
-      setEvents((current) => current.map((item) => (item.id === editing ? { ...item, ...row, id: editing } : item)))
-      notify("Event updated and marked pending approval on this page.")
-    } else {
-      setEvents((current) => [{ ...row, id: `OE-${Date.now().toString().slice(-6)}` }, ...current])
-      notify("Event submitted for admin approval on this page.")
-    }
-    setForm(blankEvent)
-    setEditing("")
   }
 
   return (
     <section>
       <PageIntro
         title="Events"
-        text="Create and edit your own shows. Saving marks the event pending approval. These rows stay in this browser. The admin events desk is the review screen."
+        text="Create, edit, and delete your own shows. Every save submits the event to the admin. Pending, approved, and rejected stay on this list, with the rejection reason when there is one."
       />
+      {error && <p className="mb-4 text-sm text-rose-300">{error}</p>}
       <form className="mb-6 grid gap-4 rounded-3xl border border-white/10 bg-panel p-5 sm:grid-cols-2" onSubmit={save}>
         <TextField id="ev-title" label="Title" value={form.title} onChange={(event) => update("title", event.target.value)} />
         <TextField id="ev-artist" label="Artist" value={form.artist} onChange={(event) => update("artist", event.target.value)} />
+        <SelectField id="ev-category" label="Category" value={form.category} onChange={(event) => update("category", event.target.value)}>
+          {categories.map((category) => (
+            <option key={category} value={category}>{category}</option>
+          ))}
+        </SelectField>
         <TextField id="ev-city" label="City" value={form.city} onChange={(event) => update("city", event.target.value)} />
         <TextField id="ev-venue" label="Venue" value={form.venue} onChange={(event) => update("venue", event.target.value)} />
+        <TextField id="ev-address" label="Address" value={form.address} onChange={(event) => update("address", event.target.value)} />
         <TextField id="ev-date" label="Date" type="date" value={form.date} onChange={(event) => update("date", event.target.value)} />
         <TextField id="ev-time" label="Time" value={form.time} onChange={(event) => update("time", event.target.value)} />
         <TextField id="ev-price" label="From price (USD)" type="number" value={form.price} onChange={(event) => update("price", event.target.value)} />
-        <TextField id="ev-qty" label="Ticket quantity" type="number" value={form.quantity} onChange={(event) => update("quantity", event.target.value)} />
-        <TextField id="ev-start" label="Sales start" type="date" value={form.salesStart} onChange={(event) => update("salesStart", event.target.value)} />
-        <TextField id="ev-end" label="Sales end" type="date" value={form.salesEnd} onChange={(event) => update("salesEnd", event.target.value)} />
+        <div className="sm:col-span-2">
+          <TextArea id="ev-blurb" label="Short description" rows={3} value={form.blurb} onChange={(event) => update("blurb", event.target.value)} />
+        </div>
+        {editing && (
+          <p className="text-sm text-amber-100 sm:col-span-2">Saving sends this event back to Pending for the admin, including after a rejection or an earlier approval.</p>
+        )}
         <div className="flex gap-2 sm:col-span-2">
           <Button type="submit">{editing ? "Save and resubmit" : "Submit for approval"}</Button>
           {editing && (
@@ -242,7 +291,7 @@ export function OrganizerEvents() {
         </div>
       </form>
       <DataTable
-        columns={["Show", "When", "Venue", "Tickets", "Status", ""]}
+        columns={["Show", "When", "Venue", "Price", "Status", ""]}
         rows={events}
         empty="No events yet."
         render={(row) => (
@@ -253,18 +302,37 @@ export function OrganizerEvents() {
             </Td>
             <Td>{row.date} · {row.time}</Td>
             <Td>{row.venue}, {row.city}</Td>
-            <Td>{money(row.price)} · {row.quantity}</Td>
-            <Td><StatusBadge status={row.status} /></Td>
+            <Td>{money(row.price)}</Td>
             <Td>
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setEditing(row.id)
-                  setForm({ ...row, price: String(row.price), quantity: String(row.quantity) })
-                }}
-              >
-                Edit
-              </Button>
+              <StatusBadge status={row.status} />
+              {row.status === "Rejected" && row.rejectionReason && (
+                <p className="mt-1 max-w-[220px] text-xs text-rose-200">{row.rejectionReason}</p>
+              )}
+            </Td>
+            <Td>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setEditing(row.id)
+                    setForm({
+                      title: row.title,
+                      artist: row.artist,
+                      category: row.category,
+                      city: row.city,
+                      venue: row.venue,
+                      address: row.address || "",
+                      date: row.date,
+                      time: row.time,
+                      price: String(row.price),
+                      blurb: row.blurb || "",
+                    })
+                  }}
+                >
+                  {row.status === "Rejected" ? "Correct and resubmit" : "Edit"}
+                </Button>
+                <Button variant="danger" onClick={() => remove(row)}>Delete</Button>
+              </div>
             </Td>
           </>
         )}
@@ -347,52 +415,105 @@ export const OrganizerAds = noticePage({
   noun: "ad",
 })
 
+const blankTicket = { eventId: "", tier: "", price: "", quantity: "", salesStart: "", salesEnd: "" }
+
 export function OrganizerTicketSetup() {
   useTitle("Ticket setup")
   const { notify } = useAppState()
-  const [rows, setRows] = useSessionList("harmony-org-tickets", organizerTickets)
-  const [form, setForm] = useState({ event: "One Night", tier: "", price: "", quantity: "", salesStart: "", salesEnd: "" })
+  const [events, setEvents] = useState([])
+  const [rows, setRows] = useState([])
+  const [error, setError] = useState("")
+  const [form, setForm] = useState(blankTicket)
+  const [editing, setEditing] = useState("")
 
-  function submit(event) {
-    event.preventDefault()
-    if (!form.tier.trim()) {
-      notify("Name the ticket tier.")
-      return
+  async function load() {
+    try {
+      const [eventData, ticketData] = await Promise.all([api("/api/events"), api("/api/tickets")])
+      const nextEvents = eventData.events || []
+      setEvents(nextEvents)
+      setRows(ticketData.tickets || [])
+      setForm((current) => ({ ...current, eventId: current.eventId || (nextEvents[0] ? String(nextEvents[0].id) : "") }))
+      setError("")
+    } catch (err) {
+      setError(err.message)
     }
-    setRows((current) => [
-      {
-        id: `TK-${Date.now().toString().slice(-5)}`,
-        event: form.event,
-        tier: form.tier,
-        price: Number(form.price) || 0,
-        quantity: Number(form.quantity) || 0,
-        sold: 0,
-        salesStart: form.salesStart,
-        salesEnd: form.salesEnd,
-        status: "On sale",
-      },
-      ...current,
-    ])
-    setForm({ event: "One Night", tier: "", price: "", quantity: "", salesStart: "", salesEnd: "" })
-    notify("Ticket tier saved on this page.")
+  }
+
+  useEffect(() => {
+    load()
+  }, [])
+
+  function update(key, value) {
+    setForm((current) => ({ ...current, [key]: value }))
+  }
+
+  async function submit(event) {
+    event.preventDefault()
+    const body = { ...form, eventId: Number(form.eventId), quantity: Number(form.quantity) }
+    try {
+      if (editing) {
+        await api(`/api/tickets/${editing}`, { method: "PATCH", body })
+        notify("Ticket updated and sent back for approval.")
+      } else {
+        await api("/api/tickets", { method: "POST", body })
+        notify("Ticket submitted for admin approval.")
+      }
+      setEditing("")
+      setForm({ ...blankTicket, eventId: form.eventId })
+      load()
+    } catch (err) {
+      notify(err.message)
+    }
+  }
+
+  async function remove(row) {
+    if (!window.confirm(`Delete the ${row.tier} ticket for ${row.event}?`)) return
+    try {
+      await api(`/api/tickets/${row.id}`, { method: "DELETE" })
+      if (editing === row.id) {
+        setEditing("")
+        setForm({ ...blankTicket, eventId: form.eventId })
+      }
+      notify("Ticket deleted.")
+      load()
+    } catch (err) {
+      notify(err.message)
+    }
   }
 
   return (
     <section>
-      <PageIntro title="Tickets" text="Set prices, quantities, and the sales window for your own events. Availability updates stay in this browser." />
-      <form className="mb-6 grid gap-4 rounded-3xl border border-white/10 bg-panel p-5 sm:grid-cols-3" onSubmit={submit}>
-        <TextField id="tk-event" label="Event" value={form.event} onChange={(event) => setForm((current) => ({ ...current, event: event.target.value }))} />
-        <TextField id="tk-tier" label="Tier" value={form.tier} onChange={(event) => setForm((current) => ({ ...current, tier: event.target.value }))} />
-        <TextField id="tk-price" label="Price (USD)" type="number" value={form.price} onChange={(event) => setForm((current) => ({ ...current, price: event.target.value }))} />
-        <TextField id="tk-qty" label="Quantity" type="number" value={form.quantity} onChange={(event) => setForm((current) => ({ ...current, quantity: event.target.value }))} />
-        <TextField id="tk-start" label="Sales start" type="date" value={form.salesStart} onChange={(event) => setForm((current) => ({ ...current, salesStart: event.target.value }))} />
-        <TextField id="tk-end" label="Sales end" type="date" value={form.salesEnd} onChange={(event) => setForm((current) => ({ ...current, salesEnd: event.target.value }))} />
-        <div className="sm:col-span-3">
-          <Button type="submit">Add ticket tier</Button>
-        </div>
-      </form>
+      <PageIntro
+        title="Tickets"
+        text="Create, edit, and delete ticket tiers for your own events. Saving submits the tier to the admin. You can read Pending, Approved, and Rejected here, then correct a rejection and resubmit."
+      />
+      {error && <p className="mb-4 text-sm text-rose-300">{error}</p>}
+      {events.length === 0 ? (
+        <p className="mb-6 rounded-3xl border border-white/10 bg-panel p-5 text-sm text-zinc-400">Submit an event before you add tickets.</p>
+      ) : (
+        <form className="mb-6 grid gap-4 rounded-3xl border border-white/10 bg-panel p-5 sm:grid-cols-3" onSubmit={submit}>
+          <SelectField id="tk-event" label="Event" value={form.eventId} onChange={(event) => update("eventId", event.target.value)}>
+            {events.map((item) => (
+              <option key={item.id} value={item.id}>{item.title}</option>
+            ))}
+          </SelectField>
+          <TextField id="tk-tier" label="Tier" value={form.tier} onChange={(event) => update("tier", event.target.value)} />
+          <TextField id="tk-price" label="Price (USD)" type="number" value={form.price} onChange={(event) => update("price", event.target.value)} />
+          <TextField id="tk-qty" label="Quantity" type="number" value={form.quantity} onChange={(event) => update("quantity", event.target.value)} />
+          <TextField id="tk-start" label="Sales start" type="date" value={form.salesStart} onChange={(event) => update("salesStart", event.target.value)} />
+          <TextField id="tk-end" label="Sales end" type="date" value={form.salesEnd} onChange={(event) => update("salesEnd", event.target.value)} />
+          <div className="flex flex-wrap gap-2 sm:col-span-3">
+            <Button type="submit">{editing ? "Save and resubmit" : "Submit for approval"}</Button>
+            {editing && (
+              <Button type="button" variant="ghost" onClick={() => { setEditing(""); setForm({ ...blankTicket, eventId: events[0] ? String(events[0].id) : "" }) }}>
+                Clear
+              </Button>
+            )}
+          </div>
+        </form>
+      )}
       <DataTable
-        columns={["Event", "Tier", "Price", "Sold", "Window", "Status", ""]}
+        columns={["Event", "Tier", "Price", "Quantity", "Window", "Status", ""]}
         rows={rows}
         empty="No ticket tiers yet."
         render={(row) => (
@@ -400,19 +521,34 @@ export function OrganizerTicketSetup() {
             <Td className="text-white">{row.event}</Td>
             <Td>{row.tier}</Td>
             <Td>{money(row.price)}</Td>
-            <Td>{row.sold} / {row.quantity}</Td>
+            <Td>{row.quantity}</Td>
             <Td>{row.salesStart || "—"} → {row.salesEnd || "—"}</Td>
-            <Td><StatusBadge status={row.status} /></Td>
             <Td>
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  const next = row.status === "On sale" ? "Held" : "On sale"
-                  setRows((current) => current.map((item) => (item.id === row.id ? { ...item, status: next } : item)))
-                }}
-              >
-                {row.status === "On sale" ? "Hold sales" : "Put on sale"}
-              </Button>
+              <StatusBadge status={row.status} />
+              {row.status === "Rejected" && row.rejectionReason && (
+                <p className="mt-1 max-w-[220px] text-xs text-rose-200">{row.rejectionReason}</p>
+              )}
+            </Td>
+            <Td>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setEditing(row.id)
+                    setForm({
+                      eventId: String(row.eventId),
+                      tier: row.tier,
+                      price: String(row.price),
+                      quantity: String(row.quantity),
+                      salesStart: row.salesStart || "",
+                      salesEnd: row.salesEnd || "",
+                    })
+                  }}
+                >
+                  {row.status === "Rejected" ? "Correct and resubmit" : "Edit"}
+                </Button>
+                <Button variant="danger" onClick={() => remove(row)}>Delete</Button>
+              </div>
             </Td>
           </>
         )}
@@ -451,141 +587,52 @@ export function OrganizerOrders() {
   )
 }
 
-export function OrganizerAttendees() {
-  useTitle("Attendees")
-  const [rows] = useSessionList("harmony-org-orders", organizerOrders)
-  const people = rows.filter((row) => row.status === "Paid")
-  return (
-    <section>
-      <PageIntro title="Attendees" text="Paid ticket holders for your events, with a sales count beside each name." />
-      <DataTable
-        columns={["Name", "Event", "Tickets", "Total"]}
-        rows={people}
-        empty="No paid attendees yet."
-        render={(row) => (
-          <>
-            <Td className="font-medium text-white">{row.buyer}</Td>
-            <Td>{row.event}</Td>
-            <Td>{row.qty} × {row.tier}</Td>
-            <Td>{money(row.total)}</Td>
-          </>
-        )}
-      />
-    </section>
-  )
-}
-
-export function OrganizerRefunds() {
-  useTitle("Refunds")
-  const { notify } = useAppState()
-  const [rows, setRows] = useSessionList("harmony-org-refunds", organizerRefunds)
-
-  function respond(id, status) {
-    setRows((current) => current.map((row) => (row.id === id ? { ...row, status } : row)))
-    notify(status === "Refunded" ? "Refund marked complete on this page." : "Refund request declined on this page.")
-  }
-
-  return (
-    <section>
-      <PageIntro title="Cancellations and refunds" text="Requests from ticket holders on your events. Replies stay in this browser." />
-      <DataTable
-        columns={["Request", "Buyer", "Amount", "Status", ""]}
-        rows={rows}
-        empty="No refund requests."
-        render={(row) => (
-          <>
-            <Td className="text-white">
-              <p className="font-medium">{row.event}</p>
-              <p className="text-xs text-zinc-500">{row.order} · {row.reason}</p>
-            </Td>
-            <Td>{row.buyer}</Td>
-            <Td>{money(row.amount)}</Td>
-            <Td><StatusBadge status={row.status} /></Td>
-            <Td>
-              {row.status === "Open" && (
-                <div className="flex gap-2">
-                  <Button variant="secondary" onClick={() => respond(row.id, "Refunded")}>Refund</Button>
-                  <Button variant="ghost" onClick={() => respond(row.id, "Declined")}>Decline</Button>
-                </div>
-              )}
-            </Td>
-          </>
-        )}
-      />
-    </section>
-  )
-}
-
 export function OrganizerEnquiries() {
   useTitle("Enquiries")
-  const { notify } = useAppState()
-  const [rows, setRows] = useSessionList("harmony-org-questions", organizerEnquiries)
-  const [reply, setReply] = useState("")
-  const [active, setActive] = useState(rows[0]?.id || "")
-
-  function send(event) {
-    event.preventDefault()
-    if (!active || reply.trim().length < 2) {
-      notify("Write a reply first.")
-      return
-    }
-    setRows((current) => current.map((row) => (row.id === active ? { ...row, reply: reply.trim(), status: "Replied" } : row)))
-    setReply("")
-    notify("Reply saved on this page.")
-  }
+  const [rows] = useSessionList("harmony-org-questions", organizerEnquiries)
 
   return (
     <section>
-      <PageIntro title="Enquiries and feedback" text="Questions about your events. Pick one and send a reply." />
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <DataTable
-          columns={["From", "Event", "Message", "Status"]}
-          rows={rows}
-          empty="No enquiries."
-          render={(row) => (
-            <>
-              <Td className="font-medium text-white">{row.from}</Td>
-              <Td>{row.event}</Td>
-              <Td>{row.reply ? `${row.message} — ${row.reply}` : row.message}</Td>
-              <Td><StatusBadge status={row.status === "Replied" ? "Confirmed" : row.status} /></Td>
-            </>
-          )}
-        />
-        <form className="h-fit space-y-4 rounded-3xl border border-white/10 bg-panel p-5" onSubmit={send}>
-          <label className="block text-sm">
-            <span className="mb-2 block font-medium text-zinc-200">Reply to</span>
-            <select className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-sm text-white" value={active} onChange={(event) => setActive(event.target.value)}>
-              {rows.map((row) => (
-                <option key={row.id} value={row.id}>{row.from} · {row.event}</option>
-              ))}
-            </select>
-          </label>
-          <TextArea id="org-reply" label="Reply" value={reply} onChange={(event) => setReply(event.target.value)} />
-          <Button type="submit">Send reply</Button>
-        </form>
-      </div>
+      <PageIntro title="Enquiries and feedback" text="Questions and feedback about your events. This list is view only." />
+      <DataTable
+        columns={["From", "Event", "Message", "Status"]}
+        rows={rows}
+        empty="No enquiries."
+        render={(row) => (
+          <>
+            <Td className="font-medium text-white">{row.from}</Td>
+            <Td>{row.event}</Td>
+            <Td>{row.message}</Td>
+            <Td><StatusBadge status={row.status} /></Td>
+          </>
+        )}
+      />
     </section>
   )
 }
 
 export function OrganizerReports() {
   useTitle("Organizer reports")
-  const [events] = useSessionList("harmony-org-events", organizerEvents)
+  const [events, setEvents] = useState([])
   const [orders] = useSessionList("harmony-org-orders", organizerOrders)
   const paid = orders.filter((row) => row.status === "Paid")
   const sales = paid.reduce((sum, row) => sum + row.total, 0)
-  const seats = paid.reduce((sum, row) => sum + row.qty, 0)
+
+  useEffect(() => {
+    api("/api/events").then((data) => setEvents(data.events || [])).catch(() => setEvents([]))
+  }, [])
+
   return (
     <section>
-      <PageIntro title="Reports" text="Ticket sales, bookings, and attendance for your own events." />
+      <PageIntro title="Reports" text="Ticket sales and bookings for your events, with the approval status of each show." />
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Sales" value={money(sales)} detail={`${paid.length} paid orders`} />
         <Stat label="Bookings" value={orders.length} detail="Including pending holds" />
-        <Stat label="Attendance" value={seats} detail={`${events.length} events on this desk`} />
+        <Stat label="Approved events" value={events.filter((row) => row.status === "Approved").length} detail={`${events.length} submitted`} />
       </div>
       <div className="mt-6">
         <DataTable
-          columns={["Event", "Status", "From price", "Quantity"]}
+          columns={["Event", "Status", "From price", "When"]}
           rows={events}
           empty="No events to report."
           render={(row) => (
@@ -593,7 +640,7 @@ export function OrganizerReports() {
               <Td className="font-medium text-white">{row.title}</Td>
               <Td><StatusBadge status={row.status} /></Td>
               <Td>{money(row.price)}</Td>
-              <Td>{row.quantity}</Td>
+              <Td>{row.date}</Td>
             </>
           )}
         />

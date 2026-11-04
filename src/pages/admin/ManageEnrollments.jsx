@@ -1,39 +1,28 @@
-import ResourceScreen, { Cell, StatusBadge } from "../../components/admin/ResourceScreen"
-import { enrollments } from "../../data/content"
+import ApprovalQueue, { ApprovalStatus } from "../../components/admin/ApprovalQueue"
+import { Td } from "../../components/ui/DataTable"
 import { longDate } from "../../lib/format"
 import { useTitle } from "../../lib/useTitle"
 
 export default function ManageEnrollments() {
-  useTitle("Enrollments")
+  useTitle("Review enrollments")
   return (
-    <ResourceScreen
+    <ApprovalQueue
       title="Enrollments"
-      description="Students asking for a place in a course."
-      createLabel="Add enrollment"
-      seed={enrollments}
-      searchKeys={["student", "email", "course", "center"]}
-      filters={[{ key: "status", label: "Statuses", options: ["Confirmed", "Pending", "Waitlist"] }]}
+      description="Approve or reject course enrollments submitted by organizers. This desk does not create, edit, or delete enrollments."
+      listKey="items"
+      reviewBase="/api/programs/enrollments"
+      searchKeys={["student", "email", "course", "center", "organizer"]}
       columns={["Student", "Course", "Studio", "Date", "Status", ""]}
-      fields={[
-        { name: "student", label: "Student" },
-        { name: "email", label: "Email", type: "email" },
-        { name: "course", label: "Course" },
-        { name: "center", label: "Music center" },
-        { name: "date", label: "Date", type: "date" },
-        { name: "status", label: "Status", type: "select", options: ["Confirmed", "Pending", "Waitlist"] },
-      ]}
       renderCells={(row) => (
         <>
-          <Cell className="text-white">
+          <Td className="text-white">
             <p className="font-medium">{row.student}</p>
             <p className="text-xs text-zinc-500">{row.email}</p>
-          </Cell>
-          <Cell>{row.course}</Cell>
-          <Cell>{row.center}</Cell>
-          <Cell>{longDate(row.date)}</Cell>
-          <Cell>
-            <StatusBadge status={row.status} />
-          </Cell>
+          </Td>
+          <Td>{row.course}</Td>
+          <Td>{row.center}</Td>
+          <Td>{longDate(row.date)}</Td>
+          <ApprovalStatus row={row} />
         </>
       )}
       detail={(row) => [
@@ -41,8 +30,10 @@ export default function ManageEnrollments() {
         ["Email", row.email],
         ["Course", row.course],
         ["Center", row.center],
+        ["Organizer", row.organizer],
         ["Date", longDate(row.date)],
         ["Status", row.status],
+        ["Rejection reason", row.rejectionReason],
       ]}
     />
   )

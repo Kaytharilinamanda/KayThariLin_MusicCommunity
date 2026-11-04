@@ -1,11 +1,12 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Search } from "lucide-react"
 import EventCard from "../components/cards/EventCard"
 import Container from "../components/ui/Container"
 import EventPoster from "../components/ui/EventPoster"
 import PageHero from "../components/ui/PageHero"
 import { ChoicePills } from "../components/ui/Field"
-import { categories, events } from "../data/content"
+import { categories, events as catalogEvents } from "../data/content"
+import { loadPublishedEvents } from "../lib/catalog"
 import { dayDistance, isSameMonth, longDate, money } from "../lib/format"
 import { useTitle } from "../lib/useTitle"
 import { Link } from "react-router-dom"
@@ -15,10 +16,15 @@ const sortOptions = ["Soonest", "Latest", "Price: low to high", "Price: high to 
 
 export default function Events() {
   useTitle("Events")
+  const [events, setEvents] = useState(catalogEvents)
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState("All")
   const [when, setWhen] = useState("Any time")
   const [sort, setSort] = useState("Soonest")
+
+  useEffect(() => {
+    loadPublishedEvents().then(setEvents)
+  }, [])
 
   const featured = events.find((event) => event.featured) || events[0]
 

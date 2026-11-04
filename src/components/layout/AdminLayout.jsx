@@ -26,10 +26,10 @@ const groups = [
     ],
   },
   {
-    label: "Programs",
+    label: "Approvals",
     items: [
       { to: "/admin/events", label: "Events", icon: CalendarDays },
-      { to: "/admin/tickets", label: "Ticket orders", icon: Ticket },
+      { to: "/admin/tickets", label: "Tickets", icon: Ticket },
       { to: "/admin/workshops", label: "Workshops", icon: Drum },
       { to: "/admin/courses", label: "Courses", icon: GraduationCap },
       { to: "/admin/categories", label: "Course categories", icon: Tags },

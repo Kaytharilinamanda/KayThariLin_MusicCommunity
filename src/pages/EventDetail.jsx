@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { Calendar, Check, Clock, MapPin, Minus, Plus } from "lucide-react"
 import Button from "../components/ui/Button"
@@ -8,7 +8,8 @@ import EventPoster from "../components/ui/EventPoster"
 import Modal from "../components/ui/Modal"
 import { TextField } from "../components/ui/Field"
 import EventCard from "../components/cards/EventCard"
-import { events } from "../data/content"
+import { events as catalogEvents } from "../data/content"
+import { loadPublishedEvents } from "../lib/catalog"
 import { useAppState } from "../context/AppState"
 import { userGate } from "../lib/account"
 import SignInPrompt from "../components/auth/SignInPrompt"
@@ -17,9 +18,28 @@ import { useTitle } from "../lib/useTitle"
 
 export default function EventDetail() {
   const { id } = useParams()
+  const [events, setEvents] = useState(catalogEvents)
+  const [ready, setReady] = useState(catalogEvents.some((item) => item.id === id))
   const event = events.find((item) => item.id === id)
   useTitle(event?.title || "Event")
-  const [tierId, setTierId] = useState(event?.tickets[0]?.id)
+  const [tierId, setTierId] = useState(event?.tickets?.[0]?.id)
+
+  useEffect(() => {
+    let active = true
+    loadPublishedEvents()
+      .then((rows) => {
+        if (!active) return
+        setEvents(rows)
+        const match = rows.find((item) => item.id === id)
+        setTierId((current) => current || match?.tickets?.[0]?.id)
+      })
+      .finally(() => {
+        if (active) setReady(true)
+      })
+    return () => {
+      active = false
+    }
+  }, [id])
   const [qty, setQty] = useState(1)
   const [open, setOpen] = useState(false)
   const [done, setDone] = useState(false)
@@ -28,14 +48,23 @@ export default function EventDetail() {
   const { notify, user, addBooking } = useAppState()
   const navigate = useNavigate()
 
-  const tier = event?.tickets.find((item) => item.id === tierId) || event?.tickets[0]
+  const tickets = event?.tickets || []
+  const tier = tickets.find((item) => item.id === tierId) || tickets[0]
   const subtotal = (tier?.price || 0) * qty
   const fee = Math.round(subtotal * 0.08)
   const total = subtotal + fee
   const related = useMemo(
     () => events.filter((item) => item.id !== id && item.category === event?.category).slice(0, 3),
-    [id, event],
+    [events, id, event],
   )
+
+  if (!ready) {
+    return (
+      <Container className="py-32 text-center">
+        <p className="text-zinc-400">Loading this event.</p>
+      </Container>
+    )
+  }
 
   if (!event) {
     return (
@@ -111,7 +140,7 @@ export default function EventDetail() {
           <p className="mt-8 max-w-2xl text-base leading-7 text-zinc-300">{event.description}</p>
           <h2 className="mt-8 font-display text-2xl text-white">On the bill</h2>
           <ul className="mt-3 space-y-2">
-            {event.lineup.map((name) => (
+            {(event.lineup || []).map((name) => (
               <li key={name} className="text-sm text-zinc-300">
                 {name}
               </li>
@@ -148,8 +177,12 @@ export default function EventDetail() {
           ) : (
             <>
               <h2 className="font-display text-2xl text-white">Tickets</h2>
+              {tickets.length === 0 ? (
+                <p className="mt-3 text-sm text-zinc-400">Approved tickets are not on sale for this show yet.</p>
+              ) : (
+              <>
               <div className="mt-4 space-y-2">
-                {event.tickets.map((option) => {
+                {tickets.map((option) => {
                   const selected = option.id === tier.id
                   return (
                     <button
@@ -207,6 +240,8 @@ export default function EventDetail() {
                   />
                 </div>
               )}
+              </>
+              )}
             </>
           )}
         </aside>
@@ -223,7 +258,7 @@ export default function EventDetail() {
         </Container>
       )}
 
-      <Modal open={open && !done} title="Reserve tickets" subtitle={`${qty} × ${tier.name} · ${money(total)}`} onClose={() => setOpen(false)}>
+      <Modal open={open && !done && Boolean(tier)} title="Reserve tickets" subtitle={tier ? `${qty} × ${tier.name} · ${money(total)}` : ""} onClose={() => setOpen(false)}>
         <form className="space-y-4" onSubmit={reserve}>
           <TextField
             id="guest-name"

@@ -2,7 +2,7 @@ import { Link } from "react-router-dom"
 import { Calendar, MapPin } from "lucide-react"
 import Badge from "../ui/Badge"
 import Cover from "../ui/Cover"
-import { longDate, money } from "../../lib/format"
+import { longDate, money, timeRange } from "../../lib/format"
 
 export default function WorkshopCard({ workshop }) {
   return (
@@ -29,7 +29,7 @@ export default function WorkshopCard({ workshop }) {
         <div className="mt-4 space-y-1.5 text-sm text-zinc-400">
           <p className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-violet-300" />
-            {longDate(workshop.date)} · {workshop.time}
+            {longDate(workshop.date)} · {timeRange(workshop.startTime, workshop.endTime)}
           </p>
           <p className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-violet-300" />

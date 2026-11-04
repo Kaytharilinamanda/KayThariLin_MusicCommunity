@@ -45,6 +45,25 @@ export function cn(...parts) {
   return parts.filter(Boolean).join(" ")
 }
 
+export function clock(value) {
+  const text = String(value || "").trim()
+  if (!text) return ""
+  if (/[ap]m/i.test(text)) return text
+  const match = text.match(/^(\d{1,2}):(\d{2})/)
+  if (!match) return text
+  const hours = Number(match[1])
+  const period = hours >= 12 ? "PM" : "AM"
+  const hour = hours % 12 || 12
+  return `${hour}:${match[2]} ${period}`
+}
+
+export function timeRange(start, end) {
+  const from = clock(start)
+  const to = clock(end)
+  if (from && to) return `${from} – ${to}`
+  return from || to
+}
+
 export function statusTone(status) {
   const map = {
     Published: "green",
@@ -56,6 +75,7 @@ export function statusTone(status) {
     Visible: "green",
     Draft: "neutral",
     Pending: "amber",
+    Approved: "green",
     "Pending approval": "amber",
     "Refund requested": "amber",
     Open: "amber",

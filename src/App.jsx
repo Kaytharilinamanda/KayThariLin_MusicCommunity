@@ -18,17 +18,22 @@ import { AccountCourses, AccountFeedback, AccountLayout, AccountOrders, AccountP
 import {
   OrganizerAds,
   OrganizerAnnouncements,
-  OrganizerAttendees,
   OrganizerEnquiries,
   OrganizerEvents,
   OrganizerHome,
   OrganizerLayout,
   OrganizerOrders,
   OrganizerProfile,
-  OrganizerRefunds,
   OrganizerReports,
   OrganizerTicketSetup,
 } from "./pages/organizer/OrganizerPages"
+import {
+  OrganizerCategories,
+  OrganizerCenters,
+  OrganizerCourses,
+  OrganizerEnrollments,
+  OrganizerWorkshops,
+} from "./pages/organizer/ProgramPages"
 import Dashboard from "./pages/admin/Dashboard"
 import ManageEvents from "./pages/admin/ManageEvents"
 import ManageTickets from "./pages/admin/ManageTickets"
@@ -87,9 +92,12 @@ export default function App() {
         <Route path="announcements" element={<OrganizerAnnouncements />} />
         <Route path="ads" element={<OrganizerAds />} />
         <Route path="tickets" element={<OrganizerTicketSetup />} />
+        <Route path="workshops" element={<OrganizerWorkshops />} />
+        <Route path="courses" element={<OrganizerCourses />} />
+        <Route path="categories" element={<OrganizerCategories />} />
+        <Route path="centers" element={<OrganizerCenters />} />
+        <Route path="enrollments" element={<OrganizerEnrollments />} />
         <Route path="orders" element={<OrganizerOrders />} />
-        <Route path="attendees" element={<OrganizerAttendees />} />
-        <Route path="refunds" element={<OrganizerRefunds />} />
         <Route path="enquiries" element={<OrganizerEnquiries />} />
         <Route path="reports" element={<OrganizerReports />} />
       </Route>
