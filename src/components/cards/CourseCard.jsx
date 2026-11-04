@@ -3,7 +3,7 @@ import { AudioLines, BookOpen, Drum, Guitar, Headphones, MicVocal, Music2, Piano
 import Badge from "../ui/Badge"
 import Cover from "../ui/Cover"
 import { schoolById } from "../../data/content"
-import { money } from "../../lib/format"
+import { longDate, money, timeRange } from "../../lib/format"
 
 const icons = {
   Piano,
@@ -40,11 +40,15 @@ export default function CourseCard({ course }) {
           </span>
         </div>
         <p className="mt-2 text-sm leading-6 text-zinc-400">{course.summary}</p>
+        <p className="mt-3 text-xs text-zinc-400">
+          {longDate(course.date)} · {timeRange(course.startTime, course.endTime)}
+        </p>
+        <p className="text-xs text-zinc-500">{course.location}</p>
         <div className="mt-4 flex items-center gap-3">
           <Cover src={course.avatar} alt="" className="h-9 w-9 rounded-full" />
           <div>
             <p className="text-sm text-white">{course.instructor}</p>
-            <p className="text-xs text-zinc-500">{school?.name}</p>
+            <p className="text-xs text-zinc-500">{school?.name || course.center}</p>
           </div>
         </div>
         <div className="mt-4 flex items-end justify-between border-t border-white/8 pt-3">

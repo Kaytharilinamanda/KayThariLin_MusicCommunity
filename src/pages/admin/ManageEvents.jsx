@@ -1,80 +1,53 @@
-import ResourceScreen, { Cell, StatusBadge } from "../../components/admin/ResourceScreen"
-import { categories, events } from "../../data/content"
+import ApprovalQueue, { ApprovalStatus } from "../../components/admin/ApprovalQueue"
+import { Td } from "../../components/ui/DataTable"
 import { longDate, money } from "../../lib/format"
 import { useTitle } from "../../lib/useTitle"
 
-const seed = [
-  {
-    id: "EV-review",
-    title: "Harbor Session",
-    artist: "Local bill",
-    category: "Live",
-    date: "2026-12-01",
-    city: "Yangon",
-    venue: "The Loft",
-    price: 25,
-    status: "Pending approval",
-  },
-  ...events.map((event) => ({
-  id: event.id,
-  title: event.title,
-  artist: event.artist,
-  category: event.category,
-  date: event.date,
-  city: event.city,
-  venue: event.venue,
-  price: event.price,
-  status: event.status,
-})),
-]
-
 export default function ManageEvents() {
-  useTitle("Manage events")
+  useTitle("Review events")
   return (
-    <ResourceScreen
+    <ApprovalQueue
       title="Events"
-      description="Review organizer submissions before they go public. Approve a pending event by editing its status to Published."
-      createLabel="Add event"
-      seed={seed}
-      searchKeys={["title", "artist", "city", "venue"]}
-      filters={[{ key: "category", label: "Categories", options: categories }, { key: "status", label: "Statuses", options: ["Pending approval", "Published", "Rejected", "Draft", "Sold out"] }]}
-      columns={["Event", "When", "Where", "Price", "Status", ""]}
-      fields={[
-        { name: "title", label: "Title" },
-        { name: "artist", label: "Artist" },
-        { name: "category", label: "Category", type: "select", options: categories },
-        { name: "date", label: "Date", type: "date" },
-        { name: "city", label: "City" },
-        { name: "venue", label: "Venue" },
-        { name: "price", label: "From price", type: "number" },
-        { name: "status", label: "Status", type: "select", options: ["Pending approval", "Published", "Rejected", "Draft", "Sold out"] },
-      ]}
+      description="Approve or reject events submitted by organizers. Approved events appear on the public calendar. This desk does not create, edit, or delete events."
+      listKey="events"
+      reviewBase="/api/events"
+      searchKeys={["title", "artist", "city", "venue", "organizer"]}
+      columns={["Event", "Organizer", "When", "Where", "Status", ""]}
       renderCells={(row) => (
         <>
-          <Cell className="text-white">
+          <Td className="text-white">
             <p className="font-medium">{row.title}</p>
             <p className="text-xs text-zinc-500">{row.artist}</p>
-          </Cell>
-          <Cell>{longDate(row.date)}</Cell>
-          <Cell>
+          </Td>
+          <Td>
+            {row.organizer}
+            {row.organization ? <p className="text-xs text-zinc-500">{row.organization}</p> : null}
+          </Td>
+          <Td>
+            {longDate(row.date)}
+            <p className="text-xs text-zinc-500">{row.time}</p>
+          </Td>
+          <Td>
             {row.venue}
             <p className="text-xs text-zinc-500">{row.city}</p>
-          </Cell>
-          <Cell>{money(row.price)}</Cell>
-          <Cell>
-            <StatusBadge status={row.status} />
-          </Cell>
+          </Td>
+          <ApprovalStatus row={row} />
         </>
       )}
       detail={(row) => [
         ["Title", row.title],
         ["Artist", row.artist],
         ["Category", row.category],
+        ["Organizer", row.organization ? `${row.organizer} · ${row.organization}` : row.organizer],
         ["Date", longDate(row.date)],
+        ["Time", row.time],
         ["Venue", row.venue],
+        ["Address", row.address],
         ["City", row.city],
-        ["Price", money(row.price)],
+        ["From price", money(row.price)],
         ["Status", row.status],
+        ["Rejection reason", row.rejectionReason],
+        ["Note", row.blurb],
       ]}
     />
   )

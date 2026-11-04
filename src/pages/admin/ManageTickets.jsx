@@ -1,58 +1,48 @@
-import ResourceScreen, { Cell, StatusBadge } from "../../components/admin/ResourceScreen"
-import { orders } from "../../data/content"
-import { longDate, money } from "../../lib/format"
+import ApprovalQueue, { ApprovalStatus } from "../../components/admin/ApprovalQueue"
+import { Td } from "../../components/ui/DataTable"
+import { money } from "../../lib/format"
 import { useTitle } from "../../lib/useTitle"
 
 export default function ManageTickets() {
-  useTitle("Ticket orders")
+  useTitle("Review tickets")
   return (
-    <ResourceScreen
-      title="Ticket orders"
-      description="Reservations for concerts. Status changes are visual only."
-      createLabel="Add order"
-      seed={orders}
-      searchKeys={["id", "buyer", "event", "email"]}
-      filters={[{ key: "status", label: "Statuses", options: ["Paid", "Pending", "Refunded"] }]}
-      columns={["Order", "Buyer", "Event", "Total", "Status", ""]}
-      fields={[
-        { name: "id", label: "Order number" },
-        { name: "buyer", label: "Buyer" },
-        { name: "email", label: "Email", type: "email" },
-        { name: "event", label: "Event" },
-        { name: "tier", label: "Ticket" },
-        { name: "qty", label: "Quantity", type: "number" },
-        { name: "total", label: "Total", type: "number" },
-        { name: "date", label: "Date", type: "date" },
-        { name: "status", label: "Status", type: "select", options: ["Paid", "Pending", "Refunded"] },
-      ]}
+    <ApprovalQueue
+      title="Tickets"
+      description="Approve or reject ticket tiers submitted by organizers. Approved tickets go on sale with an approved event. This desk does not create, edit, or delete tickets."
+      listKey="tickets"
+      reviewBase="/api/tickets"
+      searchKeys={["event", "tier", "organizer"]}
+      columns={["Ticket", "Organizer", "Price", "Window", "Status", ""]}
       renderCells={(row) => (
         <>
-          <Cell className="font-medium text-white">{row.id}</Cell>
-          <Cell>
-            {row.buyer}
-            <p className="text-xs text-zinc-500">{row.email}</p>
-          </Cell>
-          <Cell>
-            {row.event}
-            <p className="text-xs text-zinc-500">
-              {row.qty} × {row.tier}
-            </p>
-          </Cell>
-          <Cell>{money(row.total)}</Cell>
-          <Cell>
-            <StatusBadge status={row.status} />
-          </Cell>
+          <Td className="text-white">
+            <p className="font-medium">{row.tier}</p>
+            <p className="text-xs text-zinc-500">{row.event}</p>
+          </Td>
+          <Td>
+            {row.organizer}
+            {row.organization ? <p className="text-xs text-zinc-500">{row.organization}</p> : null}
+          </Td>
+          <Td>
+            {money(row.price)}
+            <p className="text-xs text-zinc-500">{row.quantity} seats</p>
+          </Td>
+          <Td>
+            {row.salesStart || "—"} → {row.salesEnd || "—"}
+          </Td>
+          <ApprovalStatus row={row} />
         </>
       )}
       detail={(row) => [
-        ["Order", row.id],
-        ["Buyer", row.buyer],
-        ["Email", row.email],
         ["Event", row.event],
-        ["Ticket", `${row.qty} × ${row.tier}`],
-        ["Date", longDate(row.date)],
-        ["Total", money(row.total)],
+        ["Tier", row.tier],
+        ["Organizer", row.organization ? `${row.organizer} · ${row.organization}` : row.organizer],
+        ["Price", money(row.price)],
+        ["Quantity", String(row.quantity)],
+        ["Sales start", row.salesStart],
+        ["Sales end", row.salesEnd],
         ["Status", row.status],
+        ["Rejection reason", row.rejectionReason],
       ]}
     />
   )

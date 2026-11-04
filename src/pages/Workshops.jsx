@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { Search } from "lucide-react"
 import WorkshopCard from "../components/cards/WorkshopCard"
@@ -6,15 +6,21 @@ import Container from "../components/ui/Container"
 import Cover from "../components/ui/Cover"
 import PageHero from "../components/ui/PageHero"
 import { ChoicePills } from "../components/ui/Field"
-import { workshopCategories, workshops } from "../data/content"
+import { workshopCategories, workshops as catalogWorkshops } from "../data/content"
+import { loadPublishedWorkshops } from "../lib/catalog"
 import { longDate, money } from "../lib/format"
 import { useTitle } from "../lib/useTitle"
 
 export default function Workshops() {
   useTitle("Workshops")
+  const [workshops, setWorkshops] = useState(catalogWorkshops)
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState("All")
   const featured = workshops[0]
+
+  useEffect(() => {
+    loadPublishedWorkshops().then(setWorkshops)
+  }, [])
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase()
@@ -27,7 +33,7 @@ export default function Workshops() {
       const matchesCategory = category === "All" || workshop.category === category
       return matchesQuery && matchesCategory
     })
-  }, [query, category])
+  }, [workshops, query, category])
 
   return (
     <>

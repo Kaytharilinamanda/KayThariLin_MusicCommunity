@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react"
 import { ArrowRight, AudioLines, Disc3, Drum, Guitar, Headphones, MicVocal, Music2, Music4, Piano, Radio, Speaker } from "lucide-react"
 import { Link } from "react-router-dom"
 import CourseCard from "../components/cards/CourseCard"
@@ -8,7 +9,8 @@ import Container from "../components/ui/Container"
 import Cover from "../components/ui/Cover"
 import EventPoster from "../components/ui/EventPoster"
 import SectionHeading from "../components/ui/SectionHeading"
-import { courses, events, posts, schools, workshops } from "../data/content"
+import { courses, events as catalogEvents, posts, schools, workshops } from "../data/content"
+import { loadPublishedEvents } from "../lib/catalog"
 import { useAppState } from "../context/AppState"
 import { homeFor, roleLabel } from "../lib/account"
 import { longDate, money } from "../lib/format"
@@ -33,6 +35,10 @@ const heroIcons = [
 
 export default function Home() {
   useTitle("Home")
+  const [events, setEvents] = useState(catalogEvents)
+  useEffect(() => {
+    loadPublishedEvents().then(setEvents)
+  }, [])
   const next = [...events].sort((a, b) => a.date.localeCompare(b.date))[0]
   const featured = events.filter((event) => event.featured)
   const spotlight = featured[0]

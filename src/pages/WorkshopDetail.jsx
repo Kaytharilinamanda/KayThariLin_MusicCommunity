@@ -1,28 +1,53 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { Calendar, Check, MapPin, Users } from "lucide-react"
 import Button from "../components/ui/Button"
 import Container from "../components/ui/Container"
 import Cover from "../components/ui/Cover"
 import { SelectField, TextArea, TextField } from "../components/ui/Field"
-import { workshops } from "../data/content"
+import { workshops as catalogWorkshops } from "../data/content"
+import { loadPublishedWorkshops } from "../lib/catalog"
 import { useAppState } from "../context/AppState"
 import { userGate } from "../lib/account"
 import SignInPrompt from "../components/auth/SignInPrompt"
-import { longDate, money } from "../lib/format"
+import { longDate, money, timeRange } from "../lib/format"
 import { useTitle } from "../lib/useTitle"
 
 const empty = { name: "", email: "", phone: "", level: "Some experience", note: "" }
 
 export default function WorkshopDetail() {
   const { id } = useParams()
+  const [workshops, setWorkshops] = useState(catalogWorkshops)
+  const [ready, setReady] = useState(catalogWorkshops.some((item) => item.id === id))
   const workshop = workshops.find((item) => item.id === id)
   useTitle(workshop?.title || "Workshop")
+
+  useEffect(() => {
+    let active = true
+    loadPublishedWorkshops()
+      .then((rows) => {
+        if (active) setWorkshops(rows)
+      })
+      .finally(() => {
+        if (active) setReady(true)
+      })
+    return () => {
+      active = false
+    }
+  }, [id])
   const [form, setForm] = useState(empty)
   const [errors, setErrors] = useState({})
   const [done, setDone] = useState(false)
   const { notify, user, addBooking } = useAppState()
   const navigate = useNavigate()
+
+  if (!ready) {
+    return (
+      <Container className="py-32 text-center">
+        <p className="text-zinc-400">Loading this workshop.</p>
+      </Container>
+    )
+  }
 
   if (!workshop) {
     return (
@@ -83,7 +108,7 @@ export default function WorkshopDetail() {
           </div>
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             {[
-              [Calendar, `${longDate(workshop.date)} · ${workshop.time}`],
+              [Calendar, `${longDate(workshop.date)} · ${timeRange(workshop.startTime, workshop.endTime)}`],
               [MapPin, `${workshop.location}, ${workshop.city}`],
               [Users, `${workshop.seats} seats`],
             ].map(([Icon, label]) => (
@@ -96,7 +121,7 @@ export default function WorkshopDetail() {
           <p className="mt-8 text-base leading-7 text-zinc-300">{workshop.description}</p>
           <h2 className="mt-8 font-display text-2xl text-white">You will leave with</h2>
           <ul className="mt-4 space-y-3">
-            {workshop.learn.map((item) => (
+            {(workshop.learn || []).map((item) => (
               <li key={item} className="flex gap-3 text-sm text-zinc-300">
                 <Check className="mt-0.5 h-4 w-4 shrink-0 text-violet-300" />
                 {item}

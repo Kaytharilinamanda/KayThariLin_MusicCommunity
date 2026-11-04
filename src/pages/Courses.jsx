@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Search } from "lucide-react"
 import CourseCard from "../components/cards/CourseCard"
@@ -8,7 +8,8 @@ import Container from "../components/ui/Container"
 import Modal from "../components/ui/Modal"
 import PageHero from "../components/ui/PageHero"
 import { ChoicePills, TextArea, TextField } from "../components/ui/Field"
-import { courses, instruments, schools } from "../data/content"
+import { courses as catalogCourses, instruments, schools as catalogSchools } from "../data/content"
+import { loadPublishedCenters, loadPublishedCourses } from "../lib/catalog"
 import { useAppState } from "../context/AppState"
 import { useTitle } from "../lib/useTitle"
 
@@ -16,6 +17,8 @@ const prices = ["Any price", "Under $100", "$100 – $140", "$140 and above"]
 
 export default function Courses() {
   useTitle("Music Courses")
+  const [courses, setCourses] = useState(catalogCourses)
+  const [schools, setSchools] = useState(catalogSchools)
   const [query, setQuery] = useState("")
   const [instrument, setInstrument] = useState("All")
   const [city, setCity] = useState("All")
@@ -27,13 +30,18 @@ export default function Courses() {
   const navigate = useNavigate()
   const cities = ["All", ...new Set(schools.map((school) => school.city))]
 
+  useEffect(() => {
+    loadPublishedCourses().then(setCourses)
+    loadPublishedCenters().then(setSchools)
+  }, [])
+
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase()
     return courses.filter((course) => {
       const school = schools.find((item) => item.id === course.centerId)
       const matchesQuery =
         !needle ||
-        [course.title, course.instructor, course.instrument, school?.name, school?.city]
+        [course.title, course.instructor, course.instrument, school?.name, school?.city, course.center]
           .filter(Boolean)
           .some((value) => value.toLowerCase().includes(needle))
       const matchesInstrument = instrument === "All" || course.instrument === instrument
@@ -45,7 +53,7 @@ export default function Courses() {
         (price === "$140 and above" && course.price > 140)
       return matchesQuery && matchesInstrument && matchesCity && matchesPrice
     })
-  }, [query, instrument, city, price])
+  }, [courses, schools, query, instrument, city, price])
 
   function sendNote(event) {
     event.preventDefault()

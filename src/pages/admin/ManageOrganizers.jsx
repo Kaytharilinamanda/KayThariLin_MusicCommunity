@@ -7,7 +7,7 @@ export default function ManageOrganizers() {
     <LiveAccounts
       role="organizer"
       title="Organizers"
-      text="Registration requests land here as pending. Approve an organizer before their shows should go public. Reject keeps the account out of the desk."
+      text="Create, edit, and delete organizer accounts. Pending registrations stay here until you approve or reject them. There is still only one admin account."
     />
   )
 }

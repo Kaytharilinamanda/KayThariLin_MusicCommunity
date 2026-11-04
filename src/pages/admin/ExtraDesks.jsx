@@ -1,5 +1,8 @@
 import { useState } from "react"
+import { api } from "../../lib/api"
 import ResourceScreen, { Cell, StatusBadge } from "../../components/admin/ResourceScreen"
+import ApprovalQueue, { ApprovalStatus } from "../../components/admin/ApprovalQueue"
+import { Td } from "../../components/ui/DataTable"
 import { AreaChart } from "../../components/admin/Charts"
 import Button from "../../components/ui/Button"
 import { TextField } from "../../components/ui/Field"
@@ -52,19 +55,100 @@ export function ManageFeedback() {
   )
 }
 
+function downloadReport(report) {
+  const lines = [
+    "Section,Metric,Value",
+    `Accounts,Users,${report.accounts.users}`,
+    `Accounts,Active users,${report.accounts.activeUsers}`,
+    `Accounts,Organizers,${report.accounts.organizers}`,
+    `Accounts,Pending organizers,${report.accounts.pendingOrganizers}`,
+    `Accounts,Admins,${report.admins}`,
+    `Events,Pending,${report.events.pending}`,
+    `Events,Approved,${report.events.approved}`,
+    `Events,Rejected,${report.events.rejected}`,
+    `Tickets,Pending,${report.tickets.pending}`,
+    `Tickets,Approved,${report.tickets.approved}`,
+    `Tickets,Rejected,${report.tickets.rejected}`,
+    ...report.waiting.map((row) => `Waiting,${row.kind}: ${row.title},${row.owner}`),
+  ]
+  const blob = new Blob([lines.join("\n")], { type: "text/csv" })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+  link.href = url
+  link.download = "harmony-analysis.csv"
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
 export function ManageReports() {
   useTitle("Reports")
+  const { notify } = useAppState()
+  const [report, setReport] = useState(null)
+  const [busy, setBusy] = useState(false)
   const paid = orders.filter((order) => order.status === "Paid")
   const sales = paid.reduce((sum, order) => sum + order.total, 0)
   const seats = paid.reduce((sum, order) => sum + order.qty, 0)
+
+  async function generate() {
+    setBusy(true)
+    try {
+      const data = await api("/api/reports")
+      setReport(data.report)
+      notify("Analysis report generated.")
+    } catch (error) {
+      notify(error.message)
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <section>
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-300">Studio</p>
       <h1 className="mt-1 font-display text-3xl text-white">Reports</h1>
       <p className="mt-2 max-w-2xl text-sm text-zinc-400">
-        Ticket sales, attendance, workshop registrations, course enrollments, and recent user activity. Figures are sample numbers for this design.
+        Generate an analysis of accounts, event approvals, and ticket approvals. The sales chart below stays the studio snapshot.
       </p>
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Button onClick={generate} disabled={busy}>{busy ? "Generating…" : "Generate report"}</Button>
+        {report && (
+          <Button variant="secondary" onClick={() => downloadReport(report)}>Download CSV</Button>
+        )}
+      </div>
+      {report && (
+        <>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              ["Users", String(report.accounts.users), `${report.accounts.activeUsers} active`],
+              ["Organizers", String(report.accounts.organizers), `${report.accounts.pendingOrganizers} pending`],
+              ["Events", String(report.events.approved), `${report.events.pending} pending · ${report.events.rejected} rejected`],
+              ["Tickets", String(report.tickets.approved), `${report.tickets.pending} pending · ${report.tickets.rejected} rejected`],
+            ].map(([label, value, note]) => (
+              <article key={label} className="rounded-2xl border border-white/10 bg-panel p-4">
+                <p className="text-sm text-zinc-400">{label}</p>
+                <p className="mt-2 font-display text-3xl text-white">{value}</p>
+                <p className="mt-1 text-xs text-zinc-500">{note}</p>
+              </article>
+            ))}
+          </div>
+          <p className="mt-3 text-xs text-zinc-500">Generated {new Date(report.generatedAt).toLocaleString()} · {report.admins} admin account</p>
+          <article className="mt-4 rounded-2xl border border-white/10 bg-panel p-5">
+            <h2 className="font-display text-xl text-white">Waiting for review</h2>
+            {report.waiting.length === 0 ? (
+              <p className="mt-3 text-sm text-zinc-400">No events or tickets are pending.</p>
+            ) : (
+              <ul className="mt-4 divide-y divide-white/8">
+                {report.waiting.map((item) => (
+                  <li key={`${item.kind}-${item.title}`} className="flex items-start justify-between gap-4 py-3 text-sm">
+                    <span className="text-zinc-200">{item.kind} · {item.title}</span>
+                    <span className="shrink-0 text-zinc-500">{item.owner}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </article>
+        </>
+      )}
       <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
           ["Ticket sales", money(sales)],
@@ -97,42 +181,30 @@ export function ManageReports() {
   )
 }
 
-const categorySeed = [
-  { id: "CAT-1", name: "Piano", courses: 2, status: "Active" },
-  { id: "CAT-2", name: "Vocal", courses: 1, status: "Active" },
-  { id: "CAT-3", name: "Guitar", courses: 1, status: "Active" },
-  { id: "CAT-4", name: "Drums", courses: 1, status: "Active" },
-]
-
 export function ManageCategories() {
-  useTitle("Course categories")
+  useTitle("Review course categories")
   return (
-    <ResourceScreen
+    <ApprovalQueue
       title="Course categories"
-      description="Piano, vocal, guitar, and drums. New categories stay in this preview."
-      createLabel="Add category"
-      seed={categorySeed}
-      searchKeys={["name"]}
-      filters={[{ key: "status", label: "Statuses", options: ["Active", "Hidden"] }]}
-      columns={["Category", "Courses", "Status", ""]}
-      fields={[
-        { name: "name", label: "Name" },
-        { name: "courses", label: "Listed courses", type: "number" },
-        { name: "status", label: "Status", type: "select", options: ["Active", "Hidden"] },
-      ]}
+      description="Approve or reject categories submitted by organizers. This desk does not create, edit, or delete categories."
+      listKey="items"
+      reviewBase="/api/programs/categories"
+      searchKeys={["name", "organizer"]}
+      columns={["Category", "Organizer", "Courses", "Status", ""]}
       renderCells={(row) => (
         <>
-          <Cell className="font-medium text-white">{row.name}</Cell>
-          <Cell>{row.courses}</Cell>
-          <Cell>
-            <StatusBadge status={row.status} />
-          </Cell>
+          <Td className="font-medium text-white">{row.name}</Td>
+          <Td>{row.organizer}</Td>
+          <Td>{row.courses}</Td>
+          <ApprovalStatus row={row} />
         </>
       )}
       detail={(row) => [
         ["Category", row.name],
-        ["Courses", String(row.courses)],
+        ["Organizer", row.organizer],
+        ["Courses", String(row.courses ?? "")],
         ["Status", row.status],
+        ["Rejection reason", row.rejectionReason],
       ]}
     />
   )
@@ -157,7 +229,7 @@ export function AdminProfile() {
     <section>
       <h1 className="font-display text-3xl text-white">Admin profile</h1>
       <p className="mt-2 max-w-2xl text-sm text-zinc-400">
-        {user?.email}. This desk manages users, organizers, events, tickets, workshops, courses, and community content.
+        {user?.email}. This desk approves organizer submissions and manages user and organizer accounts.
       </p>
       <form className="mt-6 max-w-lg space-y-4 rounded-3xl border border-white/10 bg-panel p-5" onSubmit={save}>
         <TextField id="admin-name" label="Name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />

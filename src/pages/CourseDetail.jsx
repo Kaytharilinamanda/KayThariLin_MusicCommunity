@@ -1,27 +1,64 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { Check, Clock, MapPin } from "lucide-react"
 import Button from "../components/ui/Button"
 import Container from "../components/ui/Container"
 import Cover from "../components/ui/Cover"
 import { SelectField, TextArea, TextField } from "../components/ui/Field"
-import { courseById, schoolById } from "../data/content"
+import { courses as catalogCourses, schoolById } from "../data/content"
+import { loadPublishedCourses } from "../lib/catalog"
 import { useAppState } from "../context/AppState"
 import { userGate } from "../lib/account"
 import SignInPrompt from "../components/auth/SignInPrompt"
-import { money } from "../lib/format"
+import { longDate, money, timeRange } from "../lib/format"
 import { useTitle } from "../lib/useTitle"
 
 export default function CourseDetail() {
   const { id } = useParams()
-  const course = courseById(id)
-  const school = course ? schoolById(course.centerId) : null
+  const [courses, setCourses] = useState(catalogCourses)
+  const [ready, setReady] = useState(catalogCourses.some((item) => item.id === id))
+  const course = courses.find((item) => item.id === id)
+  const school = course
+    ? schoolById(course.centerId) || {
+        name: course.center || "Studio",
+        city: "",
+        area: "",
+        address: course.location || "",
+        phone: "",
+        email: "",
+        hours: "",
+        image: course.image || "/images/piano-hall.jpg",
+        focus: course.instrument || "",
+      }
+    : null
   useTitle(course?.title || "Course")
+
+  useEffect(() => {
+    let active = true
+    loadPublishedCourses()
+      .then((rows) => {
+        if (active) setCourses(rows)
+      })
+      .finally(() => {
+        if (active) setReady(true)
+      })
+    return () => {
+      active = false
+    }
+  }, [id])
   const [form, setForm] = useState({ name: "", email: "", phone: "", start: "Next intake", message: "" })
   const [errors, setErrors] = useState({})
   const [done, setDone] = useState(false)
   const { notify, user, addBooking } = useAppState()
   const navigate = useNavigate()
+
+  if (!ready) {
+    return (
+      <Container className="py-32 text-center">
+        <p className="text-zinc-400">Loading this course.</p>
+      </Container>
+    )
+  }
 
   if (!course || !school) {
     return (
@@ -92,13 +129,14 @@ export default function CourseDetail() {
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             <div className="rounded-2xl border border-white/10 bg-panel p-4 text-sm text-zinc-200">
               <Clock className="mb-2 h-4 w-4 text-violet-300" />
-              {course.schedule}
-              <p className="mt-1 text-xs text-zinc-500">{course.duration}</p>
+              {longDate(course.date)}
+              <p className="mt-1 text-zinc-100">{timeRange(course.startTime, course.endTime)}</p>
+              <p className="mt-1 text-xs text-zinc-500">{course.schedule} · {course.duration}</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-panel p-4 text-sm text-zinc-200">
               <MapPin className="mb-2 h-4 w-4 text-violet-300" />
-              {school.city}
-              <p className="mt-1 text-xs text-zinc-500">{school.area}</p>
+              {course.location}
+              <p className="mt-1 text-xs text-zinc-500">{school.name} · {school.city}</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-panel p-4">
               <p className="text-xs text-zinc-500">Tuition</p>
@@ -107,7 +145,7 @@ export default function CourseDetail() {
           </div>
           <h2 className="mt-8 font-display text-2xl text-white">Included</h2>
           <ul className="mt-4 space-y-3">
-            {course.includes.map((item) => (
+            {(course.includes || []).map((item) => (
               <li key={item} className="flex gap-3 text-sm text-zinc-300">
                 <Check className="mt-0.5 h-4 w-4 text-violet-300" />
                 {item}
@@ -116,7 +154,7 @@ export default function CourseDetail() {
           </ul>
           <h2 className="mt-8 font-display text-2xl text-white">By the end</h2>
           <ul className="mt-4 space-y-2 text-sm text-zinc-300">
-            {course.outcomes.map((item) => (
+            {(course.outcomes || []).map((item) => (
               <li key={item}>{item}</li>
             ))}
           </ul>
