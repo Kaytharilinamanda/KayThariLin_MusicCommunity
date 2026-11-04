@@ -106,9 +106,9 @@ export default function CourseDetail() {
 
   return (
     <article>
-      <section className="relative min-h-[58vh]">
+      <section className="on-media relative min-h-[58vh]">
         <Cover src={course.image} alt="" className="absolute inset-0 h-full w-full" />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/65 to-ink/25" />
+        <div className="absolute inset-0 bg-gradient-to-t from-scrim via-scrim/65 to-scrim/25" />
         <Container className="relative flex min-h-[58vh] flex-col justify-end pt-28 pb-10">
           <Link to="/courses" className="mb-6 text-sm text-zinc-300 hover:text-white">
             ← All courses

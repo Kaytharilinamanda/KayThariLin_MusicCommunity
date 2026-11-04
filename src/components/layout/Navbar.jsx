@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom"
 import { CalendarDays, Drum, GraduationCap, Home, Megaphone, Menu, Users, X } from "lucide-react"
 import Logo from "./Logo"
 import Button from "../ui/Button"
+import ThemeToggle from "../ui/ThemeToggle"
 import Container from "../ui/Container"
 import { useAppState } from "../../context/AppState"
 import { homeFor, roleLabel } from "../../lib/account"
@@ -50,14 +51,16 @@ export default function Navbar() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-40">
-      <div className="relative border-b border-white/10 bg-[#0b0b12]/80 shadow-[0_18px_50px_-28px_rgba(180,35,52,0.85)] backdrop-blur-xl">
+      <div className="relative border-b border-white/10 bg-ink/80 shadow-[0_18px_50px_-28px_rgba(180,35,52,0.85)] backdrop-blur-xl">
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#e7a4a8] to-transparent" />
         <Container className="flex h-[4.25rem] items-center justify-between gap-3">
           <Logo />
           <nav className="hidden items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-1 lg:flex">
             <NavItems />
           </nav>
-          <div className="hidden items-center gap-2 lg:flex">
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <div className="hidden items-center gap-2 lg:flex">
             {user ? (
               <>
                 <span className="max-w-32 truncate text-sm text-zinc-300">{user.name}</span>
@@ -76,6 +79,7 @@ export default function Navbar() {
                 <Button to="/register">Join</Button>
               </>
             )}
+            </div>
           </div>
           <button
             type="button"
@@ -90,7 +94,7 @@ export default function Navbar() {
       {open && (
         <div className="lg:hidden">
           <button type="button" aria-label="Close menu" className="fixed inset-0 top-[4.25rem] bg-black/70" onClick={() => setOpen(false)} />
-          <div className="absolute inset-x-3 top-[4.6rem] rounded-3xl border border-white/10 bg-[#12121b]/95 p-3 shadow-[0_24px_60px_-24px_rgba(180,35,52,0.8)] backdrop-blur-xl">
+          <div className="absolute inset-x-3 top-[4.6rem] rounded-3xl border border-white/10 bg-raised/95 p-3 shadow-[0_24px_60px_-24px_rgba(180,35,52,0.8)] backdrop-blur-xl">
             <nav className="flex flex-col gap-1">
               <NavItems stacked onNavigate={() => setOpen(false)} />
             </nav>

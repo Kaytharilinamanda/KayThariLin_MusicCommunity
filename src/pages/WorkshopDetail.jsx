@@ -95,9 +95,9 @@ export default function WorkshopDetail() {
 
   return (
     <article>
-      <section className="relative min-h-[58vh]">
+      <section className="on-media relative min-h-[58vh]">
         <Cover src={workshop.image} alt="" className="absolute inset-0 h-full w-full" />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/60 to-ink/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-scrim via-scrim/60 to-scrim/30" />
         <Container className="relative flex min-h-[58vh] flex-col justify-end pt-28 pb-10">
           <Link to="/workshops" className="mb-6 text-sm text-zinc-300 hover:text-white">
             ← All workshops

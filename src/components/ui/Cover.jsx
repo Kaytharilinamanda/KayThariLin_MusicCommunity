@@ -7,7 +7,7 @@ export default function Cover({ src, alt, className = "" }) {
   if (!src || failed) {
     return (
       <div
-        className={cn("bg-gradient-to-br from-violet-900 via-purple-950 to-ink", className)}
+        className={cn("bg-gradient-to-br from-violet-900 via-purple-950 to-scrim", className)}
         role={alt ? "img" : undefined}
         aria-label={alt || undefined}
       />

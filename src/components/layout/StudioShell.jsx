@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom"
 import { ArrowUpRight, Bell, ChevronDown, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, UserRound, X } from "lucide-react"
 import Logo from "./Logo"
+import ThemeToggle from "../ui/ThemeToggle"
 import { useAppState } from "../../context/AppState"
 import { cn } from "../../lib/format"
 
@@ -140,7 +141,7 @@ export default function StudioShell({ homeTo, kicker, groups, profileTo, role, n
     <div className="min-h-svh bg-ink text-zinc-100 lg:flex">
       <aside
         className={cn(
-          "sticky top-0 hidden h-svh shrink-0 flex-col border-r border-white/10 bg-[#0c0c14] py-5 transition-[width] duration-300 ease-out lg:flex",
+          "sticky top-0 hidden h-svh shrink-0 flex-col border-r border-white/10 bg-ink-soft py-5 transition-[width] duration-300 ease-out lg:flex",
           collapsed ? "w-[88px] px-3" : "w-[272px] px-4",
         )}
       >
@@ -210,7 +211,7 @@ export default function StudioShell({ homeTo, kicker, groups, profileTo, role, n
                 </kbd>
               )}
               {query && (
-                <div className="absolute z-40 mt-2 w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#14141f]/95 shadow-lift backdrop-blur-xl">
+                <div className="absolute z-40 mt-2 w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-raised/95 shadow-lift backdrop-blur-xl">
                   {results.length === 0 && <p className="px-4 py-3 text-sm text-zinc-400">No matching desk.</p>}
                   {results.map((item) => {
                     const Icon = item.icon
@@ -235,6 +236,7 @@ export default function StudioShell({ homeTo, kicker, groups, profileTo, role, n
               )}
             </form>
             <div className="ml-auto flex items-center gap-2">
+              <ThemeToggle />
               <div className="relative">
                 <button
                   type="button"
@@ -257,7 +259,7 @@ export default function StudioShell({ homeTo, kicker, groups, profileTo, role, n
                   )}
                 </button>
                 {panel === "notes" && (
-                  <div className="absolute right-0 z-40 mt-3 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-white/10 bg-[#14141f]/95 shadow-lift backdrop-blur-xl">
+                  <div className="absolute right-0 z-40 mt-3 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-white/10 bg-raised/95 shadow-lift backdrop-blur-xl">
                     <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
                       <p className="text-sm font-semibold text-white">Notifications</p>
                       <span className="rounded-full bg-violet-500/20 px-2 py-0.5 text-[11px] font-medium text-violet-200">{notes.length}</span>
@@ -300,7 +302,7 @@ export default function StudioShell({ homeTo, kicker, groups, profileTo, role, n
                   <ChevronDown className={cn("hidden h-4 w-4 text-zinc-400 transition duration-200 sm:block", panel === "account" && "rotate-180")} />
                 </button>
                 {panel === "account" && (
-                  <div role="menu" className="absolute right-0 z-40 mt-3 w-64 overflow-hidden rounded-3xl border border-white/10 bg-[#14141f]/95 p-2 shadow-lift backdrop-blur-xl">
+                  <div role="menu" className="absolute right-0 z-40 mt-3 w-64 overflow-hidden rounded-3xl border border-white/10 bg-raised/95 p-2 shadow-lift backdrop-blur-xl">
                     <div className="px-3 py-2">
                       <p className="truncate text-sm font-semibold text-white">{user?.name || role}</p>
                       <p className="truncate text-xs text-zinc-400">{user?.email}</p>
@@ -349,7 +351,7 @@ export default function StudioShell({ homeTo, kicker, groups, profileTo, role, n
       {menu && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <button type="button" className="absolute inset-0 bg-black/70" aria-label="Close navigation" onClick={() => setMenu(false)} />
-          <div className="absolute inset-y-0 left-0 flex w-[min(100%,300px)] flex-col bg-[#0c0c14] p-4 shadow-lift">
+          <div className="absolute inset-y-0 left-0 flex w-[min(100%,300px)] flex-col bg-ink-soft p-4 shadow-lift">
             <div className="mb-5 flex items-center justify-between">
               <Logo to={homeTo} />
               <button

@@ -25,7 +25,7 @@ export default function CourseCard({ course }) {
       to={`/courses/${course.id}`}
       className="group flex h-full flex-col overflow-hidden rounded-3xl border border-white/10 bg-panel shadow-lift transition duration-300 hover:-translate-y-1 hover:border-violet-400/40"
     >
-      <div className="relative aspect-[16/10] overflow-hidden">
+      <div className="on-media relative aspect-[16/10] overflow-hidden">
         <Cover src={course.image} alt="" className="h-full w-full transition duration-500 group-hover:scale-105" />
         <div className="absolute top-3 left-3 flex gap-2">
           <Badge>{course.instrument}</Badge>
