@@ -1,16 +1,47 @@
-# React + Vite
+# Harmony Music Community
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React and Tailwind stay in this folder. Laravel in `laravel/` is the API and the server for http://localhost:8000. MySQL stores the accounts, events, tickets, workshops, courses, orders, posts, announcements, reviews, and notifications.
 
-Currently, two official plugins are available:
+## Run on port 8000
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+1. Start MySQL in the XAMPP Control Panel.
+2. Create the database if it does not exist:
 
-## React Compiler
+```sql
+CREATE DATABASE IF NOT EXISTS music_community CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+3. In Git Bash, from the project folder:
 
-## Expanding the Oxlint configuration
+```bash
+cd laravel
+cp .env.example .env
+php artisan key:generate
+php artisan migrate:fresh --seed
+php artisan serve --port=8000
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+4. In a second Git Bash window, from the project folder, build the React app into Laravel's public folder:
+
+```bash
+npm install
+npm run build
+```
+
+Open http://localhost:8000.
+
+`php artisan migrate:fresh --seed` rebuilds the MySQL tables and loads the catalog. Do not commit `.env`. The example file uses database `music_community`, user `root`, and an empty password, which matches a default XAMPP install.
+
+## Demo accounts
+
+| Role | Email | Password |
+| --- | --- | --- |
+| Admin | admin@harmony.community | HarmonyAdmin1 |
+| Organizer | organizer@harmony.community | Organizer123 |
+| User | user@harmony.community | Listener123 |
+
+There is one admin account. Public registration is only for users and organizers. Organizers submit events, tickets, workshops, courses, categories, centers, and enrollments. Admin approves or rejects them and can manage user and organizer accounts.
+
+## Optional Vite dev server
+
+`npm run dev` still runs the React app with hot reload and proxies `/api` to http://127.0.0.1:8000. Start Laravel first. The address to use for the finished app is port 8000.
