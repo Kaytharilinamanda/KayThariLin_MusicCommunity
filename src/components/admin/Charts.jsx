@@ -1,7 +1,8 @@
 export function AreaChart({ series }) {
+  if (!series?.length) return null
   const width = 640
   const height = 220
-  const max = Math.max(...series.map((item) => item.value))
+  const max = Math.max(...series.map((item) => item.value), 1)
   const points = series.map((item, index) => {
     const x = (index / (series.length - 1)) * width
     const y = height - (item.value / max) * (height - 28) - 8
@@ -39,7 +40,7 @@ export function AreaChart({ series }) {
 }
 
 export function DonutChart({ slices }) {
-  const total = slices.reduce((sum, slice) => sum + slice.value, 0)
+  const total = slices.reduce((sum, slice) => sum + slice.value, 0) || 1
   const radius = 54
   const circumference = 2 * Math.PI * radius
   const arcs = slices.reduce((items, slice) => {

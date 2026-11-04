@@ -6,6 +6,7 @@ import Container from "../components/ui/Container"
 import Cover from "../components/ui/Cover"
 import { SelectField, TextArea, TextField } from "../components/ui/Field"
 import { courses as catalogCourses, schoolById } from "../data/content"
+import { api } from "../lib/api"
 import { loadPublishedCourses } from "../lib/catalog"
 import { useAppState } from "../context/AppState"
 import { userGate } from "../lib/account"
@@ -19,7 +20,7 @@ export default function CourseDetail() {
   const [ready, setReady] = useState(catalogCourses.some((item) => item.id === id))
   const course = courses.find((item) => item.id === id)
   const school = course
-    ? schoolById(course.centerId) || {
+    ? course.school || schoolById(course.centerId) || {
         name: course.center || "Studio",
         city: "",
         area: "",
@@ -49,7 +50,7 @@ export default function CourseDetail() {
   const [form, setForm] = useState({ name: "", email: "", phone: "", start: "Next intake", message: "" })
   const [errors, setErrors] = useState({})
   const [done, setDone] = useState(false)
-  const { notify, user, addBooking } = useAppState()
+  const { notify, user } = useAppState()
   const navigate = useNavigate()
 
   if (!ready) {
@@ -75,7 +76,7 @@ export default function CourseDetail() {
     setForm((current) => ({ ...current, [key]: value }))
   }
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault()
     if (!userGate(user, navigate, notify, `/courses/${course.id}`)) return
     const next = {}
@@ -84,22 +85,20 @@ export default function CourseDetail() {
     if (form.phone.trim().length < 6) next.phone = "Add a phone number."
     setErrors(next)
     if (Object.keys(next).length) return
-    addBooking("courses", {
-      id: `EN-${Date.now().toString().slice(-6)}`,
-      title: course.title,
-      center: school.name,
-      status: "Pending",
-      date: new Date().toISOString().slice(0, 10),
-    })
-    if (form.message.trim()) {
-      addBooking("reviews", {
-        id: `Q-${Date.now().toString().slice(-6)}`,
-        target: course.title,
-        kind: "Course",
-        rating: 0,
-        text: form.message.trim(),
-        date: new Date().toISOString().slice(0, 10),
+    try {
+      await api("/api/enrollments", {
+        method: "POST",
+        body: {
+          courseId: course.id,
+          name: form.name.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim(),
+          message: form.message.trim(),
+        },
       })
+    } catch (error) {
+      notify(error.message)
+      return
     }
     setDone(true)
     notify("Enrollment request saved under your account.")

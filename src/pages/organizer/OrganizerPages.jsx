@@ -21,12 +21,6 @@ import { DataTable, Stat, Td } from "../../components/ui/DataTable"
 import { StatusBadge } from "../../components/admin/ResourceScreen"
 import { SelectField, TextArea, TextField } from "../../components/ui/Field"
 import { useAppState } from "../../context/AppState"
-import {
-  organizerAds,
-  organizerAnnouncements,
-  organizerEnquiries,
-  organizerOrders,
-} from "../../data/desk"
 import { categories } from "../../data/content"
 import { api } from "../../lib/api"
 import { money } from "../../lib/format"
@@ -73,32 +67,13 @@ const groups = [
   },
 ]
 
-const notes = [
-  { id: "o1", title: "New ticket order", detail: "One Night · 2 seats", time: "18m" },
-  { id: "o2", title: "Enquiry waiting", detail: "Seating question on the floor plan", time: "3h" },
-]
-
-function useSessionList(key, seed) {
-  const [rows, setRows] = useState(() => {
-    try {
-      const saved = sessionStorage.getItem(key)
-      return saved ? JSON.parse(saved) : seed
-    } catch {
-      return seed
-    }
-  })
-  function update(next) {
-    setRows((current) => {
-      const value = typeof next === "function" ? next(current) : next
-      sessionStorage.setItem(key, JSON.stringify(value))
-      return value
-    })
-  }
-  return [rows, update]
-}
-
 export function OrganizerLayout() {
   const { user } = useAppState()
+  const [notes, setNotes] = useState([])
+
+  useEffect(() => {
+    api("/api/notifications").then((data) => setNotes(data.notifications || [])).catch(() => setNotes([]))
+  }, [])
 
   return (
     <StudioShell
@@ -131,12 +106,13 @@ function PageIntro({ title, text }) {
 export function OrganizerHome() {
   useTitle("Organizer")
   const [events, setEvents] = useState([])
-  const [orders] = useSessionList("harmony-org-orders", organizerOrders)
+  const [orders, setOrders] = useState([])
   const sold = orders.filter((row) => row.status === "Paid").reduce((sum, row) => sum + row.total, 0)
   const seats = orders.reduce((sum, row) => sum + row.qty, 0)
 
   useEffect(() => {
     api("/api/events").then((data) => setEvents(data.events || [])).catch(() => setEvents([]))
+    api("/api/orders").then((data) => setOrders(data.orders || [])).catch(() => setOrders([]))
   }, [])
 
   return (
@@ -144,8 +120,8 @@ export function OrganizerHome() {
       <PageIntro title="Your shows" text="Ticket sales, bookings, and attendance for the events on this organizer account." />
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Events" value={events.length} detail={`${events.filter((row) => row.status === "Approved").length} approved`} />
-        <Stat label="Ticket sales" value={money(sold)} detail="Paid orders in this preview" />
-        <Stat label="Seats booked" value={seats} detail="Across your sample orders" />
+        <Stat label="Ticket sales" value={money(sold)} detail="Paid orders for your events" />
+        <Stat label="Seats booked" value={seats} detail="Across stored orders" />
       </div>
     </section>
   )
@@ -161,15 +137,20 @@ export function OrganizerProfile() {
     organization: user?.organization || "",
   })
 
-  function save(event) {
+  async function save(event) {
     event.preventDefault()
-    setUser((current) => (current ? { ...current, ...form } : current))
-    notify("Organizer profile updated on this page.")
+    try {
+      const data = await api("/api/me", { method: "PATCH", body: form })
+      setUser(data.user)
+      notify("Organizer profile saved.")
+    } catch (error) {
+      notify(error.message)
+    }
   }
 
   return (
     <section>
-      <PageIntro title="Organizer profile" text={`Status: ${statusLabel(user?.status)}. Contact details on this form stay in the browser.`} />
+      <PageIntro title="Organizer profile" text={`Status: ${statusLabel(user?.status)}. Contact details are saved to your account.`} />
       <form className="max-w-lg space-y-4 rounded-3xl border border-white/10 bg-panel p-5" onSubmit={save}>
         <TextField id="org-name" label="Contact name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
         <TextField id="org-email" label="Email" value={user?.email || ""} readOnly />
@@ -341,33 +322,41 @@ export function OrganizerEvents() {
   )
 }
 
-function noticePage({ title, text, storageKey, seed, noun }) {
+function noticePage({ title, text, noun }) {
   return function NoticePage() {
     useTitle(title)
     const { notify } = useAppState()
-    const [rows, setRows] = useSessionList(storageKey, seed)
+    const [rows, setRows] = useState([])
     const [form, setForm] = useState({ title: "", event: "One Night", extra: "" })
+    const kind = noun === "ad" ? "ad" : "announcement"
 
-    function submit(event) {
+    useEffect(() => {
+      api(`/api/announcements/mine?kind=${kind}`).then((data) => setRows(data.announcements || [])).catch((error) => notify(error.message))
+    }, [notify])
+
+    async function submit(event) {
       event.preventDefault()
       if (form.title.trim().length < 3) {
         notify(`Add a title for the ${noun}.`)
         return
       }
-      setRows((current) => [
-        {
-          id: `${noun.slice(0, 2).toUpperCase()}-${Date.now().toString().slice(-5)}`,
-          title: form.title.trim(),
-          event: form.event,
-          audience: form.extra || "Ticket holders",
-          placement: form.extra || "Event page",
-          status: "Published",
-          date: new Date().toISOString().slice(0, 10),
-        },
-        ...current,
-      ])
-      setForm({ title: "", event: "One Night", extra: "" })
-      notify(`${title} saved on this page.`)
+      try {
+        const data = await api("/api/announcements", {
+          method: "POST",
+          body: {
+            kind,
+            title: form.title.trim(),
+            event: form.event,
+            audience: noun === "ad" ? "Ticket holders" : form.extra || "Ticket holders",
+            placement: noun === "ad" ? form.extra || "Event page" : "",
+          },
+        })
+        setRows((current) => [data.announcement, ...current])
+        setForm({ title: "", event: "One Night", extra: "" })
+        notify(`${title} saved.`)
+      } catch (error) {
+        notify(error.message)
+      }
     }
 
     return (
@@ -401,17 +390,13 @@ function noticePage({ title, text, storageKey, seed, noun }) {
 
 export const OrganizerAnnouncements = noticePage({
   title: "Announcements",
-  text: "Notes for people who already hold tickets. New announcements are published on this design page.",
-  storageKey: "harmony-org-notes",
-  seed: organizerAnnouncements,
+  text: "Notes for people who already hold tickets. New announcements are stored and shown when they are published.",
   noun: "announcement",
 })
 
 export const OrganizerAds = noticePage({
   title: "Advertisements",
-  text: "Promotional spots for your own events. The admin desk can still review them on the design screens.",
-  storageKey: "harmony-org-ads",
-  seed: organizerAds,
+  text: "Promotional spots for your own events, stored with your organizer account.",
   noun: "ad",
 })
 
@@ -559,7 +544,11 @@ export function OrganizerTicketSetup() {
 
 export function OrganizerOrders() {
   useTitle("Organizer orders")
-  const [rows] = useSessionList("harmony-org-orders", organizerOrders)
+  const [rows, setRows] = useState([])
+
+  useEffect(() => {
+    api("/api/orders").then((data) => setRows(data.orders || [])).catch(() => setRows([]))
+  }, [])
   return (
     <section>
       <PageIntro title="Ticket orders" text="Bookings for your own events. Platform-wide orders stay on the admin desk." />
@@ -589,7 +578,11 @@ export function OrganizerOrders() {
 
 export function OrganizerEnquiries() {
   useTitle("Enquiries")
-  const [rows] = useSessionList("harmony-org-questions", organizerEnquiries)
+  const [rows, setRows] = useState([])
+
+  useEffect(() => {
+    api("/api/enquiries").then((data) => setRows(data.enquiries || [])).catch(() => setRows([]))
+  }, [])
 
   return (
     <section>
@@ -614,12 +607,13 @@ export function OrganizerEnquiries() {
 export function OrganizerReports() {
   useTitle("Organizer reports")
   const [events, setEvents] = useState([])
-  const [orders] = useSessionList("harmony-org-orders", organizerOrders)
+  const [orders, setOrders] = useState([])
   const paid = orders.filter((row) => row.status === "Paid")
   const sales = paid.reduce((sum, row) => sum + row.total, 0)
 
   useEffect(() => {
     api("/api/events").then((data) => setEvents(data.events || [])).catch(() => setEvents([]))
+    api("/api/orders").then((data) => setOrders(data.orders || [])).catch(() => setOrders([]))
   }, [])
 
   return (

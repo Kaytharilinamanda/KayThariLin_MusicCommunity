@@ -1,5 +1,4 @@
 import ResourceScreen, { Cell, StatusBadge } from "../../components/admin/ResourceScreen"
-import { adminPosts } from "../../data/content"
 import { useTitle } from "../../lib/useTitle"
 
 export default function ManagePosts() {
@@ -7,9 +6,12 @@ export default function ManagePosts() {
   return (
     <ResourceScreen
       title="Community posts"
-      description="Moderate the public feed. Hiding a post here does not change the live preview feed."
+      description="Posts saved by members. This desk can read the feed. Members create the posts."
       createLabel="Add post"
-      seed={adminPosts}
+      endpoint="/api/posts/manage"
+      listKey="posts"
+      readOnly
+      seed={[]}
       searchKeys={["author", "excerpt", "topic"]}
       filters={[{ key: "status", label: "Statuses", options: ["Visible", "Hidden"] }, { key: "topic", label: "Topics", options: ["Hip-Hop", "Practice", "Guitar", "Rock", "Production", "Songwriting"] }]}
       columns={["Author", "Post", "Topic", "Likes", "Status", ""]}

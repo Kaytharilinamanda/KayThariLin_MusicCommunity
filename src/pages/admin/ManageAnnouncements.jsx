@@ -1,5 +1,4 @@
 import ResourceScreen, { Cell, StatusBadge } from "../../components/admin/ResourceScreen"
-import { announcements } from "../../data/content"
 import { longDate } from "../../lib/format"
 import { useTitle } from "../../lib/useTitle"
 
@@ -8,9 +7,12 @@ export default function ManageAnnouncements() {
   return (
     <ResourceScreen
       title="Announcements"
-      description="Notes for members, students, and staff."
+      description="Notes published by organizers. This desk reads them."
       createLabel="Add announcement"
-      seed={announcements}
+      endpoint="/api/announcements/manage"
+      listKey="announcements"
+      readOnly
+      seed={[]}
       searchKeys={["title", "audience", "channel"]}
       filters={[{ key: "status", label: "Statuses", options: ["Published", "Draft", "Scheduled"] }]}
       columns={["Announcement", "Audience", "Channel", "Date", "Status", ""]}

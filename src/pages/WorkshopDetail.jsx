@@ -6,6 +6,7 @@ import Container from "../components/ui/Container"
 import Cover from "../components/ui/Cover"
 import { SelectField, TextArea, TextField } from "../components/ui/Field"
 import { workshops as catalogWorkshops } from "../data/content"
+import { api } from "../lib/api"
 import { loadPublishedWorkshops } from "../lib/catalog"
 import { useAppState } from "../context/AppState"
 import { userGate } from "../lib/account"
@@ -38,7 +39,7 @@ export default function WorkshopDetail() {
   const [form, setForm] = useState(empty)
   const [errors, setErrors] = useState({})
   const [done, setDone] = useState(false)
-  const { notify, user, addBooking } = useAppState()
+  const { notify, user } = useAppState()
   const navigate = useNavigate()
 
   if (!ready) {
@@ -64,7 +65,7 @@ export default function WorkshopDetail() {
     setForm((current) => ({ ...current, [key]: value }))
   }
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault()
     if (!userGate(user, navigate, notify, `/workshops/${workshop.id}`)) return
     const next = {}
@@ -73,13 +74,21 @@ export default function WorkshopDetail() {
     if (form.phone.trim().length < 6) next.phone = "Add a phone number."
     setErrors(next)
     if (Object.keys(next).length) return
-    addBooking("workshops", {
-      id: `WR-${Date.now().toString().slice(-6)}`,
-      title: workshop.title,
-      date: workshop.date,
-      city: workshop.city,
-      status: "Confirmed",
-    })
+    try {
+      await api("/api/workshop-registrations", {
+        method: "POST",
+        body: {
+          workshopId: workshop.id,
+          name: form.name.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim(),
+          level: form.level,
+        },
+      })
+    } catch (error) {
+      notify(error.message)
+      return
+    }
     setDone(true)
     notify("Registered. The seat is listed under your account.")
   }
