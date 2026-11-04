@@ -1,17 +1,16 @@
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
-import { attachAuth } from './server/index.js'
-
-function authApi() {
-  return {
-    name: 'harmony-auth',
-    configureServer(server) {
-      attachAuth(server.middlewares)
-    },
-  }
-}
 
 export default defineConfig({
-  plugins: [authApi(), react(), tailwindcss()],
+  plugins: [react(), tailwindcss()],
+  server: {
+    proxy: {
+      '/api': 'http://127.0.0.1:8000',
+    },
+  },
+  build: {
+    outDir: 'laravel/public',
+    emptyOutDir: false,
+  },
 })

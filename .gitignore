@@ -9,6 +9,14 @@ lerna-debug.log*
 
 node_modules
 dist
+.env
+.env.backup
+.env.production
+laravel/.env
+laravel/vendor
+laravel/auth.json
+laravel/storage/logs
+*.sql
 server/*.db
 dist-ssr
 *.local
