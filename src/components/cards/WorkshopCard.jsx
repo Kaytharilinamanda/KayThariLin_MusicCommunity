@@ -10,7 +10,7 @@ export default function WorkshopCard({ workshop }) {
       to={`/workshops/${workshop.id}`}
       className="group flex h-full min-w-[280px] flex-col overflow-hidden rounded-3xl border border-white/10 bg-panel shadow-lift transition duration-300 hover:-translate-y-1 hover:border-violet-400/40 sm:min-w-0"
     >
-      <div className="relative aspect-[16/10] overflow-hidden">
+      <div className="on-media relative aspect-[16/10] overflow-hidden">
         <Cover src={workshop.image} alt="" className="h-full w-full transition duration-500 group-hover:scale-105" />
         <div className="absolute top-3 left-3">
           <Badge>{workshop.category}</Badge>

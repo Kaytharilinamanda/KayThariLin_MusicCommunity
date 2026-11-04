@@ -49,7 +49,7 @@ export default function EventPoster({ event, className = "", variant = "card", t
   return (
     <div className={cn("w-full", className)}>
       <div className={cn("relative h-full overflow-hidden bg-[#f4efe6]", paper)}>
-        <div className="relative h-full overflow-hidden bg-ink">
+        <div className="on-media relative h-full overflow-hidden bg-scrim">
             <Cover
             src={event.image}
             alt={event.artist}

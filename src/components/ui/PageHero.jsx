@@ -3,10 +3,10 @@ import Container from "./Container"
 
 export default function PageHero({ eyebrow, title, subtitle, image, ornament, children }) {
   return (
-    <section className="relative overflow-hidden border-b border-white/10">
+    <section className="on-media relative overflow-hidden border-b border-white/10">
       {image && <Cover src={image} alt="" className="absolute inset-0 h-full w-full opacity-40" />}
-      <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/92 to-ink/55" />
-      <div className="absolute inset-0 bg-gradient-to-t from-ink via-transparent to-ink/50" />
+      <div className="absolute inset-0 bg-gradient-to-r from-scrim via-scrim/92 to-scrim/55" />
+      <div className="absolute inset-0 bg-gradient-to-t from-scrim via-transparent to-scrim/50" />
       <Container className="relative py-16 pt-28 sm:py-20 sm:pt-32">
         {ornament && (
           <img

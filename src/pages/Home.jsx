@@ -47,15 +47,15 @@ export default function Home() {
 
   return (
     <>
-      <section className="relative min-h-svh overflow-hidden">
+      <section className="on-media relative min-h-svh overflow-hidden">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_74%_42%,rgba(180,35,52,0.42),transparent_48%)]" />
         <div className="pointer-events-none absolute inset-0" aria-hidden="true">
           {heroIcons.map(({ Icon, className }) => (
             <Icon key={className} className={`absolute ${className}`} strokeWidth={1.25} />
           ))}
         </div>
-        <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/80 to-ink/10" />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink via-transparent to-ink/20" />
+        <div className="absolute inset-0 bg-gradient-to-r from-scrim via-scrim/80 to-scrim/10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-scrim via-transparent to-scrim/20" />
         <Container className="relative grid min-h-svh items-center gap-10 py-28 lg:grid-cols-[1.25fr_0.75fr]">
           <div className="w-full">
             <div className="max-w-3xl">

@@ -26,14 +26,15 @@ export function AreaChart({ series }) {
           x2={width}
           y1={(height / 4) * row}
           y2={(height / 4) * row}
-          stroke="white"
-          strokeOpacity="0.06"
+          className="chart-grid"
+          stroke="currentColor"
+          strokeOpacity="0.12"
         />
       ))}
       <path d={area} fill="url(#revenue-fill)" />
       <path d={line} fill="none" stroke="#e7a4a8" strokeWidth="3" strokeLinejoin="round" />
       {points.map((point, index) => (
-        <circle key={series[index].label} cx={point[0]} cy={point[1]} r="4" fill="#07070b" stroke="#e7a4a8" strokeWidth="2" />
+        <circle key={series[index].label} className="chart-dot" cx={point[0]} cy={point[1]} r="4" fill="currentColor" stroke="#e7a4a8" strokeWidth="2" />
       ))}
     </svg>
   )
@@ -51,7 +52,7 @@ export function DonutChart({ slices }) {
 
   return (
     <svg viewBox="0 0 160 160" className="h-40 w-40" role="img" aria-label="Ticket mix by genre">
-      <circle cx="80" cy="80" r={radius} fill="none" stroke="white" strokeOpacity="0.06" strokeWidth="16" />
+      <circle className="chart-grid" cx="80" cy="80" r={radius} fill="none" stroke="currentColor" strokeOpacity="0.12" strokeWidth="16" />
       {arcs.map((slice) => (
         <circle
           key={slice.label}
@@ -66,7 +67,7 @@ export function DonutChart({ slices }) {
           transform="rotate(-90 80 80)"
         />
       ))}
-      <text x="80" y="76" textAnchor="middle" fill="white" fontSize="18" fontFamily="Outfit, sans-serif">
+      <text className="chart-label" x="80" y="76" textAnchor="middle" fill="currentColor" fontSize="18" fontFamily="Outfit, sans-serif">
         {total}
       </text>
       <text x="80" y="94" textAnchor="middle" fill="#a1a1aa" fontSize="10">

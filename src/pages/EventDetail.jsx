@@ -108,9 +108,9 @@ export default function EventDetail() {
 
   return (
     <article>
-      <section className="relative overflow-hidden border-b border-white/10">
+      <section className="on-media relative overflow-hidden border-b border-white/10">
         <Cover src={event.image} alt="" className="absolute inset-0 h-full w-full scale-110 blur-3xl saturate-150" />
-        <div className="absolute inset-0 bg-ink/80" />
+        <div className="absolute inset-0 bg-scrim/80" />
         <Container className="relative pt-28 pb-12">
           <Link to="/events" className="text-sm text-zinc-300 hover:text-white">
             ← All events

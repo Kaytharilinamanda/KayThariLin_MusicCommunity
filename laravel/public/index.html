@@ -15,8 +15,15 @@
       rel="stylesheet"
     />
     <title>Harmony · Music Community</title>
-    <script type="module" crossorigin src="/assets/index-DTDXn-V0.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-CEKGy3Ng.css">
+    <script>
+      try {
+        document.documentElement.dataset.theme = localStorage.getItem("harmony-theme") === "light" ? "light" : "dark"
+      } catch (error) {
+        document.documentElement.dataset.theme = "dark"
+      }
+    </script>
+    <script type="module" crossorigin src="/assets/index-DsNxKsGN.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-B7oX41aj.css">
   </head>
   <body>
     <div id="root"></div>
