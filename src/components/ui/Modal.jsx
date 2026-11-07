@@ -20,7 +20,7 @@ export default function Modal({ open, title, subtitle, onClose, children, wide =
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center p-4 sm:items-center">
-      <button type="button" className="absolute inset-0 bg-black/70 backdrop-blur-sm" aria-label="Close dialog" onClick={onClose} />
+      <button type="button" className="absolute inset-0 bg-[#1c1416]/40 backdrop-blur-sm" aria-label="Close dialog" onClick={onClose} />
       <div
         role="dialog"
         aria-modal="true"

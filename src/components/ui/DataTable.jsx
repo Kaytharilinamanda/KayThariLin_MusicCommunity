@@ -2,7 +2,7 @@ import { cn } from "../../lib/format"
 
 export function Stat({ label, value, detail }) {
   return (
-    <div className="rounded-3xl border border-white/10 bg-panel p-5">
+    <div className="rounded-3xl border border-[#f3d6da] bg-raised p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lift">
       <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">{label}</p>
       <p className="mt-2 font-display text-3xl text-white">{value}</p>
       {detail && <p className="mt-2 text-sm text-zinc-400">{detail}</p>}
@@ -12,7 +12,7 @@ export function Stat({ label, value, detail }) {
 
 export function DataTable({ columns, rows, render, empty }) {
   return (
-    <div className="overflow-x-auto rounded-3xl border border-white/10">
+    <div className="overflow-x-auto rounded-3xl border border-[#f3d6da] bg-raised shadow-sm">
       <table className="w-full min-w-[680px] text-left text-sm">
         <thead className="border-b border-white/10 text-xs uppercase tracking-wider text-zinc-500">
           <tr>

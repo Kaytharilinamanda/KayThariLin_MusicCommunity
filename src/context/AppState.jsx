@@ -94,7 +94,7 @@ export function AppStateProvider({ children }) {
     <AppStateContext.Provider value={value}>
       {children}
       {toast && (
-        <div className="fixed bottom-5 right-5 z-[70] max-w-xs rounded-2xl border border-white/10 bg-raised px-4 py-3 text-sm text-white shadow-lift">
+        <div className="fixed bottom-5 right-5 z-[70] max-w-xs rounded-2xl border border-[#f3d6da] bg-raised px-4 py-3 text-sm text-[#1c1416] shadow-lift">
           {toast}
         </div>
       )}

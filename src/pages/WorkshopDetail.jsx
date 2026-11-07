@@ -5,9 +5,8 @@ import Button from "../components/ui/Button"
 import Container from "../components/ui/Container"
 import Cover from "../components/ui/Cover"
 import { SelectField, TextArea, TextField } from "../components/ui/Field"
-import { workshops as catalogWorkshops } from "../data/content"
 import { api } from "../lib/api"
-import { loadPublishedWorkshops } from "../lib/catalog"
+import { cachedRows, loadPublishedWorkshops, sameCatalog } from "../lib/catalog"
 import { useAppState } from "../context/AppState"
 import { userGate } from "../lib/account"
 import SignInPrompt from "../components/auth/SignInPrompt"
@@ -18,8 +17,8 @@ const empty = { name: "", email: "", phone: "", level: "Some experience", note: 
 
 export default function WorkshopDetail() {
   const { id } = useParams()
-  const [workshops, setWorkshops] = useState(catalogWorkshops)
-  const [ready, setReady] = useState(catalogWorkshops.some((item) => item.id === id))
+  const [workshops, setWorkshops] = useState(() => cachedRows("workshops") || [])
+  const [ready, setReady] = useState(() => (cachedRows("workshops") || []).some((item) => item.id === id))
   const workshop = workshops.find((item) => item.id === id)
   useTitle(workshop?.title || "Workshop")
 
@@ -27,7 +26,7 @@ export default function WorkshopDetail() {
     let active = true
     loadPublishedWorkshops()
       .then((rows) => {
-        if (active) setWorkshops(rows)
+        if (active) setWorkshops((current) => (sameCatalog(current, rows) ? current : rows))
       })
       .finally(() => {
         if (active) setReady(true)
@@ -139,8 +138,7 @@ export default function WorkshopDetail() {
           </ul>
         </div>
         <aside className="h-fit rounded-3xl border border-white/10 bg-panel p-5 shadow-lift lg:sticky lg:top-24">
-          <p className="text-sm text-zinc-400">Fee</p>
-          <p className="font-display text-4xl text-white">{money(workshop.fee)}</p>
+          <p className="text-sm text-zinc-400">Workshop Fee ({money(workshop.fee)})</p>
           {done ? (
             <div className="mt-6 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">
               You are registered for {workshop.title}. Open your account to manage the seat.

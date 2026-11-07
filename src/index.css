@@ -4,44 +4,57 @@
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
   --font-poster: "Bebas Neue", "Outfit", ui-sans-serif, sans-serif;
-  --color-ink: #07070b;
-  --color-ink-soft: #0d0d14;
-  --color-panel: #13131c;
-  --color-raised: #1c1c28;
-  --color-violet-50: #fff5f5;
-  --color-violet-100: #ffe4e4;
-  --color-violet-200: #f6c9cb;
-  --color-violet-300: #e7a4a8;
-  --color-violet-400: #d64550;
-  --color-violet-500: #b42334;
-  --color-violet-600: #8e1a28;
-  --color-violet-700: #6e121e;
-  --color-violet-800: #4c0d16;
-  --color-violet-900: #3a0a12;
-  --color-violet-950: #24060b;
-  --color-purple-500: #9b1c2c;
-  --color-purple-600: #7a1220;
-  --color-purple-700: #5c0e18;
-  --color-purple-950: #2a070c;
-  --color-fuchsia-600: #8a1c2c;
-  --color-scrim: #07070b;
-  --shadow-glow: 0 18px 50px -20px rgb(180 28 45 / 0.55);
-  --shadow-lift: 0 24px 50px -28px rgb(0 0 0 / 0.8);
+  --color-ink: #f6f1ea;
+  --color-ink-soft: #efe6dc;
+  --color-panel: #fffcf8;
+  --color-raised: #ffffff;
+  --color-scrim: #1c1418;
+  --color-white: #1c1416;
+  --color-zinc-50: #140e11;
+  --color-zinc-100: #24181c;
+  --color-zinc-200: #3d2c32;
+  --color-zinc-300: #5c464c;
+  --color-zinc-400: #6f5960;
+  --color-zinc-500: #8a737a;
+  --color-violet-50: #fff1f2;
+  --color-violet-100: #9f1239;
+  --color-violet-200: #9f1239;
+  --color-violet-300: #be123c;
+  --color-violet-400: #e11d48;
+  --color-violet-500: #e11d48;
+  --color-violet-600: #be123c;
+  --color-violet-700: #9f1239;
+  --color-violet-800: #881337;
+  --color-violet-900: #4c0519;
+  --color-violet-950: #2a0610;
+  --color-purple-500: #be123c;
+  --color-purple-600: #9f1239;
+  --color-purple-700: #881337;
+  --color-purple-950: #2a0610;
+  --color-fuchsia-600: #db2777;
+  --color-rose-100: #9f1239;
+  --color-rose-200: #be123c;
+  --color-rose-300: #e11d48;
+  --color-emerald-100: #047857;
+  --color-emerald-200: #047857;
+  --color-amber-100: #b45309;
+  --shadow-glow: 0 16px 36px -16px rgb(225 29 72 / 0.45);
+  --shadow-lift: 0 22px 44px -28px rgb(72 32 40 / 0.28);
 }
 
 @layer base {
   html {
     scroll-behavior: smooth;
-  }
-
-  html[data-theme="dark"] {
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   body {
     margin: 0;
     min-height: 100svh;
-    background: var(--color-ink);
+    background:
+      radial-gradient(980px 460px at 0% -8%, rgb(255 228 230 / 0.95), transparent 58%),
+      radial-gradient(760px 420px at 100% 0%, rgb(254 243 199 / 0.72), transparent 52%),
+      var(--color-ink);
     color: var(--color-zinc-100);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
@@ -58,86 +71,89 @@
   }
 
   ::selection {
-    background: #9b1c2c;
-    color: white;
+    background: #fecdd3;
+    color: #4c0519;
   }
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: #3a3a4d transparent;
+    scrollbar-color: #e4cfc8 transparent;
   }
 
-  html[data-theme="light"] * {
-    scrollbar-color: #d7ccc8 transparent;
+  tbody tr {
+    transition: background-color 180ms ease;
+  }
+
+  tbody tr:hover {
+    background: #fff5f6;
   }
 }
 
 .text-shine {
-  background-image: linear-gradient(120deg, #ffffff 0%, #f6c9cb 42%, #e7a4a8 78%);
+  background-image: linear-gradient(120deg, #9f1239 0%, #e11d48 46%, #fb7185 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-html[data-theme="light"] {
-  color-scheme: light;
-  --color-ink: #f7f2ef;
-  --color-ink-soft: #efe7e3;
-  --color-panel: #fffdfb;
-  --color-raised: #ffffff;
-  --color-white: #2a1c20;
-  --color-zinc-50: #1a1214;
-  --color-zinc-100: #24181b;
-  --color-zinc-200: #3d2c31;
-  --color-zinc-300: #5c464c;
-  --color-zinc-400: #6f5860;
-  --color-zinc-500: #857078;
-  --color-violet-200: #9f1239;
-  --color-violet-300: #b42334;
-  --color-rose-100: #9f1239;
-  --color-rose-200: #be123c;
-  --color-rose-300: #be123c;
-  --color-emerald-200: #047857;
-  --color-amber-100: #92400e;
-  --shadow-lift: 0 18px 40px -28px rgb(36 20 24 / 0.28);
+@keyframes hero-drift {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -10px; }
 }
 
-/* Photo heroes and brand fills keep light type in both themes. */
-html[data-theme="light"] .on-media {
+.hero-drift {
+  animation: hero-drift 7s ease-in-out infinite;
+}
+
+@keyframes rise-in {
+  from { opacity: 0; translate: 0 8px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+.rise-in {
+  animation: rise-in 280ms ease;
+}
+
+@keyframes eq-bounce {
+  0%, 100% { transform: scaleY(0.35); }
+  50% { transform: scaleY(1); }
+}
+
+.eq-bar {
+  transform-origin: bottom;
+  animation: eq-bounce 0.9s ease-in-out infinite;
+}
+
+/* Photo posters and brand fills keep light type. */
+.on-media {
   --color-white: #ffffff;
   --color-zinc-100: #f4f4f5;
   --color-zinc-200: #e4e4e7;
   --color-zinc-300: #d4d4d8;
   --color-zinc-400: #a1a1aa;
   --color-zinc-500: #a1a1aa;
-  --color-violet-200: #f6c9cb;
-  --color-violet-300: #e7a4a8;
+  --color-violet-100: #ffe4e6;
+  --color-violet-200: #fecdd3;
+  --color-violet-300: #fda4af;
   --color-rose-100: #ffe4e6;
   --color-rose-200: #fecdd3;
   --color-rose-300: #fda4af;
 }
 
-html[data-theme="light"] :is(a, button, span).bg-gradient-to-r,
-html[data-theme="light"] :is(a, button, span).bg-gradient-to-br {
+:is(a, button, span).bg-gradient-to-r,
+:is(a, button, span).bg-gradient-to-br {
   --color-white: #ffffff;
+  --color-zinc-100: #fff1f2;
+  --color-zinc-200: #ffe4e6;
 }
 
 .chart-grid,
 .chart-label {
-  color: #ffffff;
+  color: #3d2c32;
 }
 
 .chart-dot {
-  color: #07070b;
-}
-
-html[data-theme="light"] .chart-grid,
-html[data-theme="light"] .chart-label {
-  color: #241418;
-}
-
-html[data-theme="light"] .chart-dot {
-  color: #fffdfb;
+  color: #fffcf8;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -28,6 +28,7 @@ class Records
             'phone' => $user->phone ?? '',
             'city' => $user->city ?? '',
             'organization' => $user->organization ?? '',
+            'avatar' => $user->avatar ?? '',
         ];
     }
 

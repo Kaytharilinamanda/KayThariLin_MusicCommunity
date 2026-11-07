@@ -1,11 +1,11 @@
 import { cn } from "../../lib/format"
 
 const tones = {
-  violet: "bg-violet-500/15 text-violet-200 ring-violet-400/30",
-  neutral: "bg-white/8 text-zinc-300 ring-white/10",
-  green: "bg-emerald-500/15 text-emerald-200 ring-emerald-400/30",
-  amber: "bg-amber-500/15 text-amber-100 ring-amber-400/30",
-  rose: "bg-rose-500/15 text-rose-100 ring-rose-400/30",
+  violet: "bg-raised text-[#9f1239] ring-[#fecdd3] shadow-sm",
+  neutral: "bg-raised/95 text-[#57534e] ring-[#e7e5e4] shadow-sm",
+  green: "bg-raised text-[#047857] ring-[#a7f3d0] shadow-sm",
+  amber: "bg-raised text-[#b45309] ring-[#fde68a] shadow-sm",
+  rose: "bg-raised text-[#be123c] ring-[#fecdd3] shadow-sm",
 }
 
 export default function Badge({ children, tone = "violet", className = "" }) {

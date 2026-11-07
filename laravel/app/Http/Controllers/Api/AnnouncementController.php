@@ -84,6 +84,7 @@ class AnnouncementController extends Controller
             'channel' => $row->channel,
             'status' => $row->status,
             'date' => Records::day($row->published_on),
+            'body' => $row->body ?? '',
             'kind' => $row->kind,
         ];
     }

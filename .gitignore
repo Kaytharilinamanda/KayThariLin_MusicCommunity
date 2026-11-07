@@ -16,6 +16,10 @@ laravel/.env
 laravel/vendor
 laravel/auth.json
 laravel/storage/logs
+public/avatars/uploads
+laravel/public/avatars/uploads
+public/uploads
+laravel/public/uploads
 *.sql
 server/*.db
 dist-ssr

@@ -20,7 +20,7 @@ const studios = [
 
 export default function Footer() {
   return (
-    <footer className="border-t border-white/10 bg-ink-soft">
+    <footer className="border-t border-[#f3d6da] bg-raised/70">
       <Container className="grid gap-10 py-14 md:grid-cols-2 lg:grid-cols-4">
         <div>
           <Logo />
@@ -33,7 +33,7 @@ export default function Footer() {
           <ul className="mt-4 space-y-2 text-sm text-zinc-300">
             {explore.map((item) => (
               <li key={item.to}>
-                <Link to={item.to} className="hover:text-white">
+                <Link to={item.to} className="transition hover:text-[#9f1239]">
                   {item.label}
                 </Link>
               </li>
@@ -56,12 +56,12 @@ export default function Footer() {
             Yangon
           </p>
           <p className="mt-3 text-sm text-zinc-300">hello@harmony.community</p>
-          <Link to="/admin" className="mt-4 inline-block text-sm text-violet-300 hover:text-violet-200">
+          <Link to="/admin" className="mt-4 inline-block text-sm text-[#be123c] transition hover:text-[#9f1239]">
             Admin studio
           </Link>
         </div>
       </Container>
-      <div className="border-t border-white/10">
+      <div className="border-t border-[#f3d6da]">
         <Container className="flex flex-col gap-2 py-5 text-xs text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
           <p>© {year} Harmony. A design preview with sample listings.</p>
           <p>Yangon · Mandalay · Naypyidaw</p>

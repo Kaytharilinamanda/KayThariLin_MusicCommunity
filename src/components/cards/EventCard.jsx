@@ -7,7 +7,7 @@ export default function EventCard({ event }) {
   return (
     <Link
       to={`/events/${event.id}`}
-      className="group flex h-full flex-col overflow-hidden rounded-3xl border border-white/10 bg-panel shadow-lift transition duration-300 hover:-translate-y-1 hover:border-violet-400/40"
+      className="group flex h-full flex-col overflow-hidden rounded-3xl border border-[#f3d6da] bg-raised shadow-lift transition duration-300 hover:-translate-y-1 hover:border-[#fda4af] hover:shadow-[0_28px_50px_-28px_rgba(159,18,57,0.35)]"
     >
       <EventPoster event={event} titleTag="h3" className="aspect-[3/4]" />
       <div className="flex flex-1 flex-col gap-3 p-4">

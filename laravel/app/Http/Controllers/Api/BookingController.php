@@ -313,7 +313,10 @@ class BookingController extends Controller
 
     public function destroyReview(Request $request, Review $review)
     {
-        Records::requireAdmin($request->user());
+        $actor = $request->user();
+        if ($actor->role !== 'admin' && (int) $review->user_id !== (int) $actor->id) {
+            Records::fail('You can only delete your own feedback.', 403);
+        }
         $review->delete();
 
         return ['ok' => true];

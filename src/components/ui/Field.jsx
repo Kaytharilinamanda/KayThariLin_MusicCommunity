@@ -4,12 +4,12 @@ import { cn } from "../../lib/format"
 
 function shell(error, valid) {
   return cn(
-    "flex items-center gap-2 rounded-2xl border bg-white/[0.04] px-3 transition",
+    "flex items-center gap-2 rounded-2xl border bg-[#fffdfb] px-3 shadow-sm transition",
     error
-      ? "border-rose-400/70 ring-2 ring-rose-500/15"
+      ? "border-[#fb7185] ring-2 ring-[#fecdd3]"
       : valid
-        ? "border-emerald-400/50 ring-2 ring-emerald-500/10"
-        : "border-white/10 focus-within:border-violet-400/70 focus-within:ring-2 focus-within:ring-violet-500/20",
+        ? "border-[#34d399] ring-2 ring-[#d1fae5]"
+        : "border-[#ead7da] focus-within:border-[#fb7185] focus-within:ring-2 focus-within:ring-[#ffe4e6]",
   )
 }
 
@@ -27,7 +27,7 @@ export function TextField({ label, error, hint, valid, icon: Icon, className = "
         {Icon && <Icon className="h-4 w-4 shrink-0 text-zinc-500" />}
         <input
           id={id}
-          className="w-full bg-transparent py-3 text-sm text-white outline-none placeholder:text-zinc-500"
+          className="w-full bg-transparent py-3 text-sm text-[#1c1416] outline-none placeholder:text-[#a89499]"
           {...props}
         />
       </span>
@@ -47,12 +47,12 @@ export function PasswordField({ label, error, hint, valid, id, ...props }) {
         <input
           id={id}
           type={visible ? "text" : "password"}
-          className="w-full bg-transparent py-3 text-sm text-white outline-none placeholder:text-zinc-500"
+          className="w-full bg-transparent py-3 text-sm text-[#1c1416] outline-none placeholder:text-[#a89499]"
           {...props}
         />
         <button
           type="button"
-          className="rounded-full p-1 text-zinc-400 hover:text-white"
+          className="rounded-full p-1 text-[#8a737a] transition hover:bg-[#fff1f2] hover:text-[#9f1239]"
           aria-label={visible ? "Hide password" : "Show password"}
           onClick={() => setVisible((value) => !value)}
         >
@@ -72,12 +72,12 @@ export function TextArea({ label, error, hint, valid, id, rows = 4, ...props }) 
         id={id}
         rows={rows}
         className={cn(
-          "w-full resize-none rounded-2xl border bg-white/[0.04] px-3 py-3 text-sm text-white outline-none placeholder:text-zinc-500",
+          "w-full resize-none rounded-2xl border bg-[#fffdfb] px-3 py-3 text-sm text-[#1c1416] shadow-sm outline-none placeholder:text-[#a89499]",
           error
-            ? "border-rose-400/70 ring-2 ring-rose-500/15"
+            ? "border-[#fb7185] ring-2 ring-[#fecdd3]"
             : valid
-              ? "border-emerald-400/50"
-              : "border-white/10 focus:border-violet-400/70 focus:ring-2 focus:ring-violet-500/20",
+              ? "border-[#34d399]"
+              : "border-[#ead7da] focus:border-[#fb7185] focus:ring-2 focus:ring-[#ffe4e6]",
         )}
         {...props}
       />
@@ -93,8 +93,8 @@ export function SelectField({ label, error, hint, id, children, ...props }) {
       <select
         id={id}
         className={cn(
-          "w-full appearance-none rounded-2xl border bg-ink px-3 py-3 text-sm text-white outline-none",
-          error ? "border-rose-400/70" : "border-white/10 focus:border-violet-400/70",
+          "w-full appearance-none rounded-2xl border bg-[#fffdfb] px-3 py-3 text-sm text-[#1c1416] shadow-sm outline-none",
+          error ? "border-[#fb7185]" : "border-[#ead7da] focus:border-[#fb7185]",
         )}
         {...props}
       >
@@ -109,7 +109,7 @@ export function ChoicePills({ options, value, onChange, label }) {
   return (
     <div>
       {label && <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">{label}</p>}
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="flex gap-2 overflow-x-auto px-0.5 py-1.5">
         {options.map((option) => {
           const active = option === value
           return (
@@ -118,13 +118,16 @@ export function ChoicePills({ options, value, onChange, label }) {
               type="button"
               onClick={() => onChange(option)}
               className={cn(
-                "shrink-0 rounded-full px-3.5 py-1.5 text-sm transition",
+                "group relative shrink-0 overflow-hidden rounded-full px-4 py-2 text-sm font-medium",
                 active
-                  ? "bg-white text-ink"
-                  : "bg-white/5 text-zinc-300 ring-1 ring-white/10 hover:bg-white/10",
+                  ? "bg-[#e11d48] text-[#fff] shadow-[0_8px_18px_-12px_rgba(225,29,72,0.9)]"
+                  : "bg-raised text-[#5c464c] ring-1 ring-[#ead7da] hover:text-[#fff] hover:ring-transparent hover:shadow-[0_10px_22px_-12px_rgba(225,29,72,0.85)]",
               )}
             >
-              {option}
+              {!active && (
+                <span className="absolute inset-0 origin-left scale-x-0 bg-[#e11d48] transition-transform duration-300 ease-out group-hover:scale-x-100" />
+              )}
+              <span className="relative z-10">{option}</span>
             </button>
           )
         })}

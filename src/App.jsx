@@ -10,6 +10,7 @@ import Courses from "./pages/Courses"
 import CourseDetail from "./pages/CourseDetail"
 import Community from "./pages/Community"
 import Announcements from "./pages/Announcements"
+import Notifications from "./pages/Notifications"
 import Login from "./pages/Login"
 import Register from "./pages/Register"
 import NotFound from "./pages/NotFound"
@@ -60,6 +61,14 @@ export default function App() {
         <Route path="courses/:id" element={<CourseDetail />} />
         <Route path="community" element={<Community />} />
         <Route path="announcements" element={<Announcements />} />
+        <Route
+          path="notifications"
+          element={
+            <RequireAuth>
+              <Notifications />
+            </RequireAuth>
+          }
+        />
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
         <Route

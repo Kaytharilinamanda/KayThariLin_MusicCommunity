@@ -97,7 +97,7 @@ class ReportController extends Controller
                 'to' => '/admin/events',
                 'status' => 'Pending',
             ])->values(),
-            'orders' => TicketOrder::query()->latest()->limit(5)->get()->map(fn (TicketOrder $order) => [
+            'ordersList' => TicketOrder::query()->latest()->limit(5)->get()->map(fn (TicketOrder $order) => [
                 'id' => $order->code,
                 'buyer' => $order->buyer_name,
                 'event' => $order->event_title,
@@ -117,14 +117,48 @@ class ReportController extends Controller
         return ['notifications' => Notification::query()
             ->where('user_id', $request->user()->id)
             ->latest()
-            ->limit(12)
+            ->limit(40)
             ->get()
-            ->map(fn (Notification $note) => [
-                'id' => $note->id,
-                'title' => $note->title,
-                'detail' => $note->detail,
-                'time' => Records::ago($note->created_at),
-            ])->values()];
+            ->map(fn (Notification $note) => $this->note($note))->values()];
+    }
+
+    public function readNotification(Request $request, Notification $notification)
+    {
+        $this->ownNote($request, $notification);
+        if (! $notification->read_at) {
+            $notification->forceFill(['read_at' => now()])->save();
+        }
+
+        return ['notification' => $this->note($notification)];
+    }
+
+    public function readNotifications(Request $request)
+    {
+        Notification::query()
+            ->where('user_id', $request->user()->id)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        return ['ok' => true];
+    }
+
+    private function ownNote(Request $request, Notification $notification): void
+    {
+        if ((int) $notification->user_id !== (int) $request->user()->id) {
+            Records::fail('You can only update your own notifications.', 403);
+        }
+    }
+
+    private function note(Notification $note): array
+    {
+        return [
+            'id' => $note->id,
+            'title' => $note->title,
+            'detail' => $note->detail,
+            'time' => Records::ago($note->created_at),
+            'date' => Records::day($note->created_at),
+            'unread' => $note->read_at === null,
+        ];
     }
 
     private function tally(string $model): array

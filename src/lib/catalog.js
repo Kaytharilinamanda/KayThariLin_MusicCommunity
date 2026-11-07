@@ -1,12 +1,70 @@
 import { courses as courseCatalog, events as catalog, schools, workshops as workshopCatalog } from "../data/content"
 import { api } from "./api"
 
+const CACHE_KEY = "harmony-live-catalog"
+const memory = {}
+
+function readStore() {
+  try {
+    const raw = sessionStorage.getItem(CACHE_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+export function cachedRows(key) {
+  if (Array.isArray(memory[key]) && memory[key].length) return memory[key]
+  const stored = readStore()[key]
+  if (Array.isArray(stored) && stored.length) {
+    memory[key] = stored
+    return stored
+  }
+  return null
+}
+
+function remember(key, rows) {
+  memory[key] = rows
+  try {
+    const next = { ...readStore(), [key]: rows }
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify(next))
+  } catch {
+    // The page still uses the rows from this response.
+  }
+  return rows
+}
+
+export async function loadCached(key, load) {
+  try {
+    const rows = await load()
+    return remember(key, Array.isArray(rows) ? rows : [])
+  } catch {
+    return cachedRows(key) || []
+  }
+}
+
+export function sameRows(current, next) {
+  if (!Array.isArray(current) || !Array.isArray(next) || current.length !== next.length) return false
+  return current.every((item, index) => {
+    const other = next[index]
+    return item?.id === other?.id && item?.title === other?.title && item?.text === other?.text && item?.likes === other?.likes && item?.time === other?.time && item?.following === other?.following && item?.channel === other?.channel && item?.tag === other?.tag && item?.posts === other?.posts && item?.name === other?.name
+  })
+}
+
+export function sameCatalog(current, next) {
+  if (!Array.isArray(current) || !Array.isArray(next) || current.length !== next.length) return false
+  return current.every((item, index) => {
+    const other = next[index]
+    return item?.id === other?.id && item?.title === other?.title && item?.image === other?.image && item?.date === other?.date && item?.price === other?.price && item?.fee === other?.fee
+  })
+}
+
 export async function loadPublishedEvents() {
   try {
     const data = await api("/api/events/public")
-    return Array.isArray(data.events) ? data.events : catalog
+    return remember("events", Array.isArray(data.events) ? data.events : catalog)
   } catch {
-    return catalog
+    return cachedRows("events") || catalog
   }
 }
 
@@ -57,23 +115,23 @@ function liveCenter(item) {
   }
 }
 
-async function loadPublic(path, mapItem, catalogRows) {
+async function loadPublic(key, path, mapItem, catalogRows) {
   try {
     const data = await api(path)
-    return Array.isArray(data.items) ? data.items.map(mapItem) : catalogRows
+    return remember(key, Array.isArray(data.items) ? data.items.map(mapItem) : catalogRows)
   } catch {
-    return catalogRows
+    return cachedRows(key) || catalogRows
   }
 }
 
 export function loadPublishedWorkshops() {
-  return loadPublic("/api/programs/workshops/public", liveWorkshop, workshopCatalog)
+  return loadPublic("workshops", "/api/programs/workshops/public", liveWorkshop, workshopCatalog)
 }
 
 export function loadPublishedCourses() {
-  return loadPublic("/api/programs/courses/public", liveCourse, courseCatalog)
+  return loadPublic("courses", "/api/programs/courses/public", liveCourse, courseCatalog)
 }
 
 export function loadPublishedCenters() {
-  return loadPublic("/api/programs/centers/public", liveCenter, schools)
+  return loadPublic("centers", "/api/programs/centers/public", liveCenter, schools)
 }
