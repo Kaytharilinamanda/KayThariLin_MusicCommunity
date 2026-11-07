@@ -57,9 +57,10 @@ export default function Login() {
 
   return (
     <AuthShell
-      image="/images/artists/sai-sai.jpg"
+      image="/images/artists/lu-hpring.jpg"
+      imageClass="object-[center_32%]"
       quote="The best seats are the ones where you can still hear the room breathe."
-      quoteBy="Sai Sai Kham Leng · Yangon"
+      quoteBy="Lu Hpring · Myitkyina"
       title="Welcome back"
       subtitle="Users and organizers sign in with the account they registered. The studio has one admin, already created."
       footer={
@@ -91,13 +92,6 @@ export default function Login() {
             </button>
           ))}
         </div>
-        {role === "admin" && (
-          <div className="rounded-2xl border border-violet-400/30 bg-violet-500/10 p-4 text-sm text-violet-100">
-            <p className="font-medium text-white">Studio admin</p>
-            <p className="mt-1">admin@harmony.community</p>
-            <p>HarmonyAdmin1</p>
-          </div>
-        )}
         <TextField
           id="login-email"
           label="Email"

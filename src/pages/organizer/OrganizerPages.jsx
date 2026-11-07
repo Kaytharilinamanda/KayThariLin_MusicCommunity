@@ -26,6 +26,7 @@ import { api } from "../../lib/api"
 import { money } from "../../lib/format"
 import { statusLabel } from "../../lib/account"
 import { useTitle } from "../../lib/useTitle"
+import ProfilePhoto from "../../components/account/ProfilePhoto"
 
 const groups = [
   {
@@ -150,8 +151,9 @@ export function OrganizerProfile() {
 
   return (
     <section>
-      <PageIntro title="Organizer profile" text={`Status: ${statusLabel(user?.status)}. Contact details are saved to your account.`} />
+      <PageIntro title="Organizer profile" text={`Status: ${statusLabel(user?.status)}. Contact details and your photo are saved to your account.`} />
       <form className="max-w-lg space-y-4 rounded-3xl border border-white/10 bg-panel p-5" onSubmit={save}>
+        <ProfilePhoto />
         <TextField id="org-name" label="Contact name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
         <TextField id="org-email" label="Email" value={user?.email || ""} readOnly />
         <TextField id="org-company" label="Organizer or company" value={form.organization} onChange={(event) => setForm((current) => ({ ...current, organization: event.target.value }))} />

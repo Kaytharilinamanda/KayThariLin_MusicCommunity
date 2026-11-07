@@ -8,8 +8,8 @@ import Container from "../components/ui/Container"
 import Modal from "../components/ui/Modal"
 import PageHero from "../components/ui/PageHero"
 import { ChoicePills, TextArea, TextField } from "../components/ui/Field"
-import { courses as catalogCourses, instruments, schools as catalogSchools } from "../data/content"
-import { loadPublishedCenters, loadPublishedCourses } from "../lib/catalog"
+import { instruments } from "../data/content"
+import { cachedRows, loadPublishedCenters, loadPublishedCourses, sameCatalog } from "../lib/catalog"
 import { useAppState } from "../context/AppState"
 import { useTitle } from "../lib/useTitle"
 
@@ -17,8 +17,8 @@ const prices = ["Any price", "Under $100", "$100 – $140", "$140 and above"]
 
 export default function Courses() {
   useTitle("Music Courses")
-  const [courses, setCourses] = useState(catalogCourses)
-  const [schools, setSchools] = useState(catalogSchools)
+  const [courses, setCourses] = useState(() => cachedRows("courses") || [])
+  const [schools, setSchools] = useState(() => cachedRows("centers") || [])
   const [query, setQuery] = useState("")
   const [instrument, setInstrument] = useState("All")
   const [city, setCity] = useState("All")
@@ -31,8 +31,10 @@ export default function Courses() {
   const cities = ["All", ...new Set(schools.map((school) => school.city))]
 
   useEffect(() => {
-    loadPublishedCourses().then(setCourses)
-    loadPublishedCenters().then(setSchools)
+    Promise.all([loadPublishedCourses(), loadPublishedCenters()]).then(([nextCourses, nextSchools]) => {
+      setCourses((current) => (sameCatalog(current, nextCourses) ? current : nextCourses))
+      setSchools((current) => (sameCatalog(current, nextSchools) ? current : nextSchools))
+    })
   }, [])
 
   const visible = useMemo(() => {
@@ -68,13 +70,14 @@ export default function Courses() {
   return (
     <>
       <PageHero
+        compact
         eyebrow="Learn"
         title="Music courses"
         subtitle="Lessons and longer tracks at studios you can visit. Filter by instrument, city, and price."
         image="/images/piano-hall.jpg"
       />
-      <Container className="py-10">
-        <div className="space-y-4 rounded-3xl border border-white/10 bg-panel p-4">
+      <Container className="pt-6 pb-10">
+        <div className="space-y-4 rounded-3xl border border-[#f3d6da] bg-raised p-5 shadow-sm">
           <label className="relative block">
             <span className="sr-only">Search courses</span>
             <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-zinc-500" />

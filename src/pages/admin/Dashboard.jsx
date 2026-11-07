@@ -44,12 +44,19 @@ export default function Dashboard() {
   const [dash, setDash] = useState(emptyDash)
 
   useEffect(() => {
-    api("/api/dashboard").then((data) => setDash({ ...emptyDash, ...data.dashboard, ordersList: data.dashboard?.orders || [] })).catch(() => {})
+    api("/api/dashboard")
+      .then((data) => {
+        const payload = data.dashboard || {}
+        const recent = Array.isArray(payload.ordersList) ? payload.ordersList : Array.isArray(payload.orders) ? payload.orders : []
+        const orderCount = Array.isArray(payload.orders) ? recent.length : Number(payload.orders ?? recent.length)
+        setDash({ ...emptyDash, ...payload, orders: orderCount, ordersList: recent })
+      })
+      .catch(() => {})
   }, [])
 
   const sales = dash.sales
   const seats = dash.seats
-  const orders = dash.ordersList
+  const orders = Array.isArray(dash.ordersList) ? dash.ordersList : []
   const published = dash.announcements
   const revenueSeries = dash.revenueSeries
   const genreSplit = dash.genreSplit

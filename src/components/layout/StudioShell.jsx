@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from "react"
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom"
 import { ArrowUpRight, Bell, ChevronDown, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, UserRound, X } from "lucide-react"
 import Logo from "./Logo"
-import ThemeToggle from "../ui/ThemeToggle"
 import { useAppState } from "../../context/AppState"
 import { cn } from "../../lib/format"
+import { Avatar } from "../account/ProfilePhoto"
 
 function initials(name = "") {
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -36,7 +36,7 @@ function NavGroups({ groups, collapsed = false, onNavigate }) {
                     cn(
                       "group flex items-center rounded-2xl text-sm transition duration-200",
                       collapsed ? "justify-center px-1 py-1" : "gap-3 px-2 py-1.5",
-                      isActive ? "bg-white/[0.07] text-white" : "text-zinc-400 hover:bg-white/[0.05] hover:text-white",
+                      isActive ? "bg-[#fff1f2] text-[#9f1239]" : "text-[#6f5960] hover:bg-[#fff7f7] hover:text-[#1c1416]",
                     )
                   }
                 >
@@ -47,7 +47,7 @@ function NavGroups({ groups, collapsed = false, onNavigate }) {
                           "grid h-9 w-9 shrink-0 place-items-center rounded-xl transition duration-200",
                           isActive
                             ? "bg-gradient-to-br from-violet-400 to-purple-700 text-white shadow-glow"
-                            : "bg-white/[0.04] text-[#e7a4a8] group-hover:scale-105 group-hover:bg-white/10 group-hover:text-white",
+                            : "bg-[#fff1f2] text-[#e11d48] group-hover:scale-105 group-hover:bg-[#ffe4e6] group-hover:text-[#9f1239]",
                         )}
                       >
                         <Icon className="h-4 w-4" />
@@ -113,10 +113,6 @@ export default function StudioShell({ homeTo, kicker, groups, profileTo, role, n
       }
     }
     function onKey(event) {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault()
-        searchRef.current?.focus()
-      }
       if (event.key === "Escape") {
         setPanel("")
         setQuery("")
@@ -138,10 +134,10 @@ export default function StudioShell({ homeTo, kicker, groups, profileTo, role, n
   }
 
   return (
-    <div className="min-h-svh bg-ink text-zinc-100 lg:flex">
+    <div className="min-h-svh bg-[#f6f1ea] text-zinc-100 lg:flex">
       <aside
         className={cn(
-          "sticky top-0 hidden h-svh shrink-0 flex-col border-r border-white/10 bg-ink-soft py-5 transition-[width] duration-300 ease-out lg:flex",
+          "sticky top-0 hidden h-svh shrink-0 flex-col border-r border-[#f3d6da] bg-raised/75 py-5 shadow-[8px_0_30px_-24px_rgba(120,40,50,0.35)] transition-[width] duration-300 ease-out lg:flex",
           collapsed ? "w-[88px] px-3" : "w-[272px] px-4",
         )}
       >
@@ -151,7 +147,7 @@ export default function StudioShell({ homeTo, kicker, groups, profileTo, role, n
             type="button"
             aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
             onClick={() => setCollapsed((value) => !value)}
-            className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 text-zinc-400 transition hover:bg-white/10 hover:text-white"
+            className="grid h-9 w-9 place-items-center rounded-xl border border-[#f3d6da] bg-raised text-[#6f5960] shadow-sm transition hover:-translate-y-0.5 hover:text-[#9f1239]"
           >
             {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
           </button>
@@ -164,22 +160,22 @@ export default function StudioShell({ homeTo, kicker, groups, profileTo, role, n
           to="/"
           title={collapsed ? "Public site" : undefined}
           className={cn(
-            "mt-4 flex items-center rounded-2xl text-sm text-zinc-400 transition hover:bg-white/[0.05] hover:text-white",
+            "mt-4 flex items-center rounded-2xl text-sm text-[#6f5960] transition hover:bg-[#fff7f7] hover:text-[#9f1239]",
             collapsed ? "justify-center px-1 py-2" : "gap-2 px-3 py-2.5",
           )}
         >
-          <ArrowUpRight className="h-4 w-4 shrink-0 text-[#e7a4a8]" />
+          <ArrowUpRight className="h-4 w-4 shrink-0 text-[#e11d48]" />
           {!collapsed && "Public site"}
         </Link>
       </aside>
 
       <div className="min-w-0 flex-1">
-        <header ref={headerRef} className="sticky top-0 z-30 border-b border-white/10 bg-ink/80 backdrop-blur-xl">
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#e7a4a8]/80 to-transparent" />
+        <header ref={headerRef} className="sticky top-0 z-30 border-b border-[#f3d6da] bg-raised/80 backdrop-blur-xl">
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#fb7185]/80 to-transparent" />
           <div className="flex h-[4.25rem] items-center gap-3 px-4 sm:px-6">
             <button
               type="button"
-              className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-white transition hover:bg-white/10 lg:hidden"
+              className="grid h-10 w-10 place-items-center rounded-full border border-[#f3d6da] bg-raised text-[#9f1239] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#fff1f2] lg:hidden"
               aria-label="Open navigation"
               onClick={() => setMenu(true)}
             >
@@ -203,13 +199,8 @@ export default function StudioShell({ homeTo, kicker, groups, profileTo, role, n
                 onFocus={() => setPanel("")}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={`Search ${kicker.toLowerCase()}`}
-                className="w-full max-w-md rounded-full border border-white/10 bg-white/[0.04] py-2 pr-16 pl-10 text-sm outline-none transition placeholder:text-zinc-500 focus:border-violet-400/60 focus:bg-white/[0.07]"
+                className="w-full max-w-md rounded-full border border-[#ead7da] bg-[#fffdfb] py-2 pr-4 pl-10 text-sm text-[#1c1416] shadow-sm outline-none transition placeholder:text-[#a89499] focus:border-[#fb7185] focus:ring-2 focus:ring-[#ffe4e6]"
               />
-              {!query && (
-                <kbd className="pointer-events-none absolute top-1/2 right-3 hidden -translate-y-1/2 rounded-md border border-white/10 px-1.5 py-0.5 text-[10px] tracking-wide text-zinc-500 lg:inline">
-                  Ctrl K
-                </kbd>
-              )}
               {query && (
                 <div className="absolute z-40 mt-2 w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-raised/95 shadow-lift backdrop-blur-xl">
                   {results.length === 0 && <p className="px-4 py-3 text-sm text-zinc-400">No matching desk.</p>}
@@ -222,7 +213,7 @@ export default function StudioShell({ homeTo, kicker, groups, profileTo, role, n
                         onClick={() => navigate(item.to)}
                         className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition hover:bg-white/[0.06]"
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-white/[0.05] text-[#e7a4a8]">
+                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#fff1f2] text-[#e11d48]">
                           <Icon className="h-4 w-4" />
                         </span>
                         <span className="min-w-0">
@@ -236,7 +227,6 @@ export default function StudioShell({ homeTo, kicker, groups, profileTo, role, n
               )}
             </form>
             <div className="ml-auto flex items-center gap-2">
-              <ThemeToggle />
               <div className="relative">
                 <button
                   type="button"
@@ -246,8 +236,8 @@ export default function StudioShell({ homeTo, kicker, groups, profileTo, role, n
                   className={cn(
                     "relative grid h-10 w-10 place-items-center rounded-full border text-zinc-200 transition",
                     panel === "notes"
-                      ? "border-violet-400/50 bg-white/10 text-white"
-                      : "border-white/10 bg-white/[0.04] hover:border-violet-400/40 hover:bg-white/10 hover:text-white",
+                      ? "border-[#fda4af] bg-[#fff1f2] text-[#9f1239]"
+                      : "border-[#f3d6da] bg-raised text-[#6f5960] shadow-sm hover:-translate-y-0.5 hover:border-[#fda4af] hover:text-[#9f1239]",
                   )}
                 >
                   <Bell className="h-4 w-4" />
@@ -276,6 +266,9 @@ export default function StudioShell({ homeTo, kicker, groups, profileTo, role, n
                         </div>
                       ))}
                     </div>
+                    <Link to="/notifications" onClick={() => setPanel("")} className="block border-t border-white/10 px-4 py-3 text-sm font-medium text-[#9f1239]">
+                      Open notifications
+                    </Link>
                   </div>
                 )}
               </div>
@@ -288,13 +281,17 @@ export default function StudioShell({ homeTo, kicker, groups, profileTo, role, n
                   className={cn(
                     "flex items-center gap-2.5 rounded-full border py-1 pr-2 pl-1 transition duration-200",
                     panel === "account"
-                      ? "border-violet-400/50 bg-white/10"
-                      : "border-white/10 bg-white/[0.04] hover:border-white/25 hover:bg-white/[0.08]",
+                      ? "border-[#fda4af] bg-[#fff1f2]"
+                      : "border-[#f3d6da] bg-raised shadow-sm hover:-translate-y-0.5 hover:border-[#fda4af]",
                   )}
                 >
-                  <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-violet-400 to-purple-700 text-[11px] font-semibold text-white">
-                    {initials(user?.name)}
-                  </span>
+                  {user?.avatar ? (
+                    <Avatar user={user} className="h-8 w-8 text-[11px]" />
+                  ) : (
+                    <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-violet-400 to-purple-700 text-[11px] font-semibold text-white">
+                      {initials(user?.name)}
+                    </span>
+                  )}
                   <span className="hidden text-left sm:block">
                     <span className="block max-w-36 truncate text-sm leading-tight font-medium text-white">{user?.name || role}</span>
                     <span className="block max-w-36 truncate text-[11px] leading-tight text-zinc-400">{detail}</span>
@@ -315,7 +312,7 @@ export default function StudioShell({ homeTo, kicker, groups, profileTo, role, n
                       onClick={() => setPanel("")}
                       className="flex items-center gap-2 rounded-2xl px-3 py-2.5 text-sm text-zinc-200 transition hover:bg-white/[0.06]"
                     >
-                      <UserRound className="h-4 w-4 text-[#e7a4a8]" />
+                      <UserRound className="h-4 w-4 text-[#e11d48]" />
                       Profile
                     </Link>
                     <Link
@@ -324,7 +321,7 @@ export default function StudioShell({ homeTo, kicker, groups, profileTo, role, n
                       onClick={() => setPanel("")}
                       className="flex items-center gap-2 rounded-2xl px-3 py-2.5 text-sm text-zinc-200 transition hover:bg-white/[0.06]"
                     >
-                      <ArrowUpRight className="h-4 w-4 text-[#e7a4a8]" />
+                      <ArrowUpRight className="h-4 w-4 text-[#e11d48]" />
                       Public site
                     </Link>
                     <button
@@ -350,7 +347,7 @@ export default function StudioShell({ homeTo, kicker, groups, profileTo, role, n
 
       {menu && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <button type="button" className="absolute inset-0 bg-black/70" aria-label="Close navigation" onClick={() => setMenu(false)} />
+          <button type="button" className="absolute inset-0 bg-[#1c1416]/35" aria-label="Close navigation" onClick={() => setMenu(false)} />
           <div className="absolute inset-y-0 left-0 flex w-[min(100%,300px)] flex-col bg-ink-soft p-4 shadow-lift">
             <div className="mb-5 flex items-center justify-between">
               <Logo to={homeTo} />

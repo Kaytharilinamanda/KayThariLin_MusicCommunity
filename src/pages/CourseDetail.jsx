@@ -5,9 +5,9 @@ import Button from "../components/ui/Button"
 import Container from "../components/ui/Container"
 import Cover from "../components/ui/Cover"
 import { SelectField, TextArea, TextField } from "../components/ui/Field"
-import { courses as catalogCourses, schoolById } from "../data/content"
+import { schoolById } from "../data/content"
 import { api } from "../lib/api"
-import { loadPublishedCourses } from "../lib/catalog"
+import { cachedRows, loadPublishedCourses, sameCatalog } from "../lib/catalog"
 import { useAppState } from "../context/AppState"
 import { userGate } from "../lib/account"
 import SignInPrompt from "../components/auth/SignInPrompt"
@@ -16,8 +16,8 @@ import { useTitle } from "../lib/useTitle"
 
 export default function CourseDetail() {
   const { id } = useParams()
-  const [courses, setCourses] = useState(catalogCourses)
-  const [ready, setReady] = useState(catalogCourses.some((item) => item.id === id))
+  const [courses, setCourses] = useState(() => cachedRows("courses") || [])
+  const [ready, setReady] = useState(() => (cachedRows("courses") || []).some((item) => item.id === id))
   const course = courses.find((item) => item.id === id)
   const school = course
     ? course.school || schoolById(course.centerId) || {
@@ -38,7 +38,7 @@ export default function CourseDetail() {
     let active = true
     loadPublishedCourses()
       .then((rows) => {
-        if (active) setCourses(rows)
+        if (active) setCourses((current) => (sameCatalog(current, rows) ? current : rows))
       })
       .finally(() => {
         if (active) setReady(true)

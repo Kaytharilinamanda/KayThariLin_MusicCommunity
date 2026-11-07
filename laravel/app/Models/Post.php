@@ -13,9 +13,14 @@ class Post extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function sharedPost()
+    {
+        return $this->belongsTo(Post::class, 'shared_post_id');
+    }
+
     public function comments()
     {
-        return $this->hasMany(Comment::class);
+        return $this->hasMany(Comment::class)->whereNull('parent_id')->orderBy('id');
     }
 
     public function likes()

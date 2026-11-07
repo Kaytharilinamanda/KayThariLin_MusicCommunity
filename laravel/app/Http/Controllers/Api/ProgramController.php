@@ -51,6 +51,7 @@ class ProgramController extends Controller
             ->where('approval_status', 'approved')
             ->whereHas('organizer', fn ($query) => $query->where('status', 'active'))
             ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->get();
 
         return [

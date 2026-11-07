@@ -26,7 +26,10 @@ Route::get('/topics', [CommunityController::class, 'topics']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::patch('/me', [AuthController::class, 'update']);
+    Route::post('/me/photo', [AuthController::class, 'photo']);
     Route::get('/notifications', [ReportController::class, 'notifications']);
+    Route::post('/notifications/read', [ReportController::class, 'readNotifications']);
+    Route::patch('/notifications/{notification}', [ReportController::class, 'readNotification']);
 
     Route::get('/users', [UserController::class, 'index']);
     Route::post('/users', [UserController::class, 'store']);
@@ -73,6 +76,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/enquiries', [BookingController::class, 'enquiries']);
 
     Route::post('/posts', [CommunityController::class, 'storePost']);
+    Route::post('/posts/image', [CommunityController::class, 'uploadImage']);
+    Route::delete('/posts/{post}', [CommunityController::class, 'destroy']);
+    Route::post('/posts/{post}/share', [CommunityController::class, 'share']);
     Route::post('/posts/{post}/like', [CommunityController::class, 'like']);
     Route::post('/posts/{post}/comments', [CommunityController::class, 'comment']);
     Route::get('/posts/manage', [CommunityController::class, 'managePosts']);

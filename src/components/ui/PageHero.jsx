@@ -1,13 +1,12 @@
 import Cover from "./Cover"
 import Container from "./Container"
 
-export default function PageHero({ eyebrow, title, subtitle, image, ornament, children }) {
+export default function PageHero({ eyebrow, title, subtitle, image, ornament, children, compact = false }) {
   return (
-    <section className="on-media relative overflow-hidden border-b border-white/10">
-      {image && <Cover src={image} alt="" className="absolute inset-0 h-full w-full opacity-40" />}
-      <div className="absolute inset-0 bg-gradient-to-r from-scrim via-scrim/92 to-scrim/55" />
-      <div className="absolute inset-0 bg-gradient-to-t from-scrim via-transparent to-scrim/50" />
-      <Container className="relative py-16 pt-28 sm:py-20 sm:pt-32">
+    <section className="relative overflow-hidden border-b border-[#f3d6da]">
+      {image && <Cover src={image} alt="" className="absolute inset-0 h-full w-full object-cover opacity-[0.14]" />}
+      <div className="absolute inset-0 bg-gradient-to-r from-[#f6f1ea] via-[#f6f1ea]/92 to-[#fff1f2]/75" />
+      <Container className={compact ? "relative pt-[5.5rem] pb-6 sm:pt-24 sm:pb-8" : "relative py-16 pt-28 sm:py-20 sm:pt-32"}>
         {ornament && (
           <img
             src={ornament}
@@ -18,10 +17,10 @@ export default function PageHero({ eyebrow, title, subtitle, image, ornament, ch
         {eyebrow && (
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-300">{eyebrow}</p>
         )}
-        <h1 className={`max-w-3xl font-display text-4xl font-semibold tracking-tight text-white sm:mt-3 sm:text-5xl ${ornament ? "mt-10" : "mt-3"}`}>
+        <h1 className={`max-w-3xl font-display font-semibold tracking-tight text-white ${compact ? "mt-2 text-4xl" : `text-4xl sm:mt-3 sm:text-5xl ${ornament ? "mt-10" : "mt-3"}`}`}>
           {title}
         </h1>
-        {subtitle && <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-300 sm:text-lg">{subtitle}</p>}
+        {subtitle && <p className={`max-w-2xl text-zinc-300 ${compact ? "mt-2 text-sm leading-6" : "mt-4 text-base leading-7 sm:text-lg"}`}>{subtitle}</p>}
         {children && <div className="mt-8">{children}</div>}
       </Container>
     </section>

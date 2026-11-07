@@ -3,7 +3,7 @@ import Cover from "../ui/Cover"
 
 export default function SchoolCard({ school, onContact }) {
   return (
-    <article className="overflow-hidden rounded-3xl border border-white/10 bg-panel shadow-lift">
+    <article className="overflow-hidden rounded-3xl border border-[#f3d6da] bg-raised shadow-lift transition duration-300 hover:-translate-y-1 hover:shadow-[0_28px_50px_-28px_rgba(159,18,57,0.35)]">
       <div className="relative h-44">
         <Cover src={school.image} alt="" className="h-full w-full" />
         <div className="absolute inset-0 bg-gradient-to-t from-panel via-transparent to-transparent" />

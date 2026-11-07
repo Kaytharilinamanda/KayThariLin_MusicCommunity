@@ -29,7 +29,8 @@ class EventController extends Controller
             ->with(['organizer', 'tickets' => fn ($query) => $query->where('approval_status', 'approved')->orderBy('price')])
             ->where('approval_status', 'approved')
             ->whereHas('organizer', fn ($query) => $query->where('status', 'active'))
-            ->orderBy('event_date')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->get();
 
         return ['events' => $events->map(fn (Event $event) => $this->publicEvent($event))->values()];

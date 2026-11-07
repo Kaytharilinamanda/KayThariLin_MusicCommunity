@@ -8,7 +8,7 @@ export default function WorkshopCard({ workshop }) {
   return (
     <Link
       to={`/workshops/${workshop.id}`}
-      className="group flex h-full min-w-[280px] flex-col overflow-hidden rounded-3xl border border-white/10 bg-panel shadow-lift transition duration-300 hover:-translate-y-1 hover:border-violet-400/40 sm:min-w-0"
+      className="group flex h-full min-w-[280px] flex-col overflow-hidden rounded-3xl border border-[#f3d6da] bg-raised shadow-lift transition duration-300 hover:-translate-y-1 hover:border-[#fda4af] hover:shadow-[0_28px_50px_-28px_rgba(159,18,57,0.35)] sm:min-w-0"
     >
       <div className="on-media relative aspect-[16/10] overflow-hidden">
         <Cover src={workshop.image} alt="" className="h-full w-full transition duration-500 group-hover:scale-105" />

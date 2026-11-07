@@ -314,7 +314,7 @@ export const workshops = [
     city: "Yangon",
     fee: 32,
     seats: 14,
-    image: "/images/guitar-dark.jpg",
+    image: "/images/guitar.jpg",
     summary: "Hands, amps, and the few pedals that actually earn their keep.",
     description:
       "David sets up three amps and asks everyone to play the same four bars through each. The point is to hear what your hands are doing before you buy another box.",
@@ -356,7 +356,7 @@ export const workshops = [
     city: "Yangon",
     fee: 38,
     seats: 10,
-    image: "/images/piano-hands.jpg",
+    image: "/images/piano-hall.jpg",
     summary: "Leave the page for an evening and learn how to keep a harmony moving.",
     description:
       "For pianists who can read and want to stop freezing when the chart says 'solo'. Sarah keeps the harmony simple and the time honest.",

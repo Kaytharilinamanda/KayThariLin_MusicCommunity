@@ -8,9 +8,8 @@ import EventPoster from "../components/ui/EventPoster"
 import Modal from "../components/ui/Modal"
 import { TextField } from "../components/ui/Field"
 import EventCard from "../components/cards/EventCard"
-import { events as catalogEvents } from "../data/content"
 import { api } from "../lib/api"
-import { loadPublishedEvents } from "../lib/catalog"
+import { cachedRows, loadPublishedEvents, sameCatalog } from "../lib/catalog"
 import { useAppState } from "../context/AppState"
 import { userGate } from "../lib/account"
 import SignInPrompt from "../components/auth/SignInPrompt"
@@ -19,8 +18,8 @@ import { useTitle } from "../lib/useTitle"
 
 export default function EventDetail() {
   const { id } = useParams()
-  const [events, setEvents] = useState(catalogEvents)
-  const [ready, setReady] = useState(catalogEvents.some((item) => item.id === id))
+  const [events, setEvents] = useState(() => cachedRows("events") || [])
+  const [ready, setReady] = useState(() => (cachedRows("events") || []).some((item) => item.id === id))
   const event = events.find((item) => item.id === id)
   useTitle(event?.title || "Event")
   const [tierId, setTierId] = useState(event?.tickets?.[0]?.id)
@@ -30,7 +29,7 @@ export default function EventDetail() {
     loadPublishedEvents()
       .then((rows) => {
         if (!active) return
-        setEvents(rows)
+        setEvents((current) => (sameCatalog(current, rows) ? current : rows))
         const match = rows.find((item) => item.id === id)
         setTierId((current) => current || match?.tickets?.[0]?.id)
       })

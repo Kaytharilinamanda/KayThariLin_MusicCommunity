@@ -6,20 +6,20 @@ import Container from "../components/ui/Container"
 import Cover from "../components/ui/Cover"
 import PageHero from "../components/ui/PageHero"
 import { ChoicePills } from "../components/ui/Field"
-import { workshopCategories, workshops as catalogWorkshops } from "../data/content"
-import { loadPublishedWorkshops } from "../lib/catalog"
+import { workshopCategories } from "../data/content"
+import { cachedRows, loadPublishedWorkshops, sameCatalog } from "../lib/catalog"
 import { longDate, money } from "../lib/format"
 import { useTitle } from "../lib/useTitle"
 
 export default function Workshops() {
   useTitle("Workshops")
-  const [workshops, setWorkshops] = useState(catalogWorkshops)
+  const [workshops, setWorkshops] = useState(() => cachedRows("workshops") || [])
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState("All")
   const featured = workshops[0]
 
   useEffect(() => {
-    loadPublishedWorkshops().then(setWorkshops)
+    loadPublishedWorkshops().then((rows) => setWorkshops((current) => (sameCatalog(current, rows) ? current : rows)))
   }, [])
 
   const visible = useMemo(() => {
@@ -38,28 +38,29 @@ export default function Workshops() {
   return (
     <>
       <PageHero
+        compact
         eyebrow="In the room"
         title="Music workshops"
         subtitle="Short sessions with working players. A schedule, a fee, and a seat count you can trust."
         image="/images/studio.jpg"
       />
-      <Container className="py-10">
-        <Link to={`/workshops/${featured.id}`} className="grid overflow-hidden rounded-3xl border border-white/10 bg-panel md:grid-cols-2">
-          <Cover src={featured.image} alt="" className="h-64 w-full md:h-full" />
-          <div className="p-6 sm:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-300">Next workshop</p>
-            <h2 className="mt-2 font-display text-3xl text-white">{featured.title}</h2>
-            <p className="mt-2 text-sm text-zinc-300">
+      <Container className="pt-6 pb-10">
+        {featured && <Link to={`/workshops/${featured.id}`} className="grid overflow-hidden rounded-3xl border border-white/10 bg-panel sm:grid-cols-[11rem_minmax(0,1fr)]">
+          <Cover src={featured.image} alt="" className="h-32 w-full sm:h-36" />
+          <div className="px-5 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-300">Just added</p>
+            <h2 className="mt-1 font-display text-2xl text-white">{featured.title}</h2>
+            <p className="mt-1 text-sm text-zinc-300">
               {featured.instructor} · {longDate(featured.date)}
             </p>
-            <p className="mt-4 text-sm leading-6 text-zinc-400">{featured.summary}</p>
-            <p className="mt-4 text-sm text-white">
+            <p className="mt-2 line-clamp-2 text-sm leading-5 text-zinc-400">{featured.summary}</p>
+            <p className="mt-2 text-sm text-white">
               {money(featured.fee)} · {featured.seats} seats · {featured.location}
             </p>
           </div>
-        </Link>
+        </Link>}
 
-        <div className="mt-8 space-y-4 rounded-3xl border border-white/10 bg-panel p-4">
+        <div className="mt-8 space-y-4 rounded-3xl border border-[#f3d6da] bg-raised p-5 shadow-sm">
           <label className="relative block">
             <span className="sr-only">Search workshops</span>
             <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-zinc-500" />

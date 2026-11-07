@@ -15,8 +15,8 @@ export function AreaChart({ series }) {
     <svg viewBox={`0 0 ${width} ${height}`} className="h-56 w-full" role="img" aria-label="Ticket revenue over six months">
       <defs>
         <linearGradient id="revenue-fill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#b42334" stopOpacity="0.5" />
-          <stop offset="100%" stopColor="#b42334" stopOpacity="0" />
+          <stop offset="0%" stopColor="#e11d48" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="#e11d48" stopOpacity="0" />
         </linearGradient>
       </defs>
       {[0, 1, 2, 3].map((row) => (
@@ -32,9 +32,9 @@ export function AreaChart({ series }) {
         />
       ))}
       <path d={area} fill="url(#revenue-fill)" />
-      <path d={line} fill="none" stroke="#e7a4a8" strokeWidth="3" strokeLinejoin="round" />
+      <path d={line} fill="none" stroke="#e11d48" strokeWidth="3" strokeLinejoin="round" />
       {points.map((point, index) => (
-        <circle key={series[index].label} className="chart-dot" cx={point[0]} cy={point[1]} r="4" fill="currentColor" stroke="#e7a4a8" strokeWidth="2" />
+        <circle key={series[index].label} className="chart-dot" cx={point[0]} cy={point[1]} r="4" fill="currentColor" stroke="#e11d48" strokeWidth="2" />
       ))}
     </svg>
   )
