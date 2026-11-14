@@ -17,7 +17,7 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::get('/events/public', [EventController::class, 'publicIndex']);
-Route::get('/programs/{kind}/public', [ProgramController::class, 'publicIndex'])->where('kind', 'workshops|courses|centers');
+Route::get('/programs/{kind}/public', [ProgramController::class, 'publicIndex'])->where('kind', 'workshops|courses');
 Route::get('/announcements', [AnnouncementController::class, 'index']);
 Route::get('/posts', [CommunityController::class, 'posts']);
 Route::get('/members', [CommunityController::class, 'members']);
@@ -41,6 +41,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard', [ReportController::class, 'dashboard']);
 
     Route::get('/events', [EventController::class, 'index']);
+    Route::post('/events/image', [EventController::class, 'uploadImage']);
     Route::post('/events', [EventController::class, 'store']);
     Route::patch('/events/{event}/review', [EventController::class, 'review']);
     Route::patch('/events/{event}', [EventController::class, 'update']);
@@ -52,6 +53,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/tickets/{ticket}', [TicketController::class, 'update']);
     Route::delete('/tickets/{ticket}', [TicketController::class, 'destroy']);
 
+    Route::post('/programs/image', [ProgramController::class, 'uploadImage']);
     Route::patch('/programs/{kind}/{program}/review', [ProgramController::class, 'review'])->whereNumber('program');
     Route::patch('/programs/{kind}/{program}', [ProgramController::class, 'update'])->whereNumber('program');
     Route::delete('/programs/{kind}/{program}', [ProgramController::class, 'destroy'])->whereNumber('program');
@@ -68,6 +70,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/enrollments', [BookingController::class, 'enrollments']);
     Route::post('/enrollments', [BookingController::class, 'storeEnrollment']);
+    Route::patch('/enrollments/{enrollment}', [BookingController::class, 'updateEnrollment']);
 
     Route::get('/reviews', [BookingController::class, 'reviews']);
     Route::post('/reviews', [BookingController::class, 'storeReview']);
@@ -82,9 +85,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/posts/{post}/like', [CommunityController::class, 'like']);
     Route::post('/posts/{post}/comments', [CommunityController::class, 'comment']);
     Route::get('/posts/manage', [CommunityController::class, 'managePosts']);
+    Route::delete('/posts/manage/{post}', [CommunityController::class, 'adminDestroy']);
     Route::post('/members/{member}/follow', [CommunityController::class, 'follow']);
 
     Route::get('/announcements/manage', [AnnouncementController::class, 'manage']);
+    Route::delete('/announcements/manage/{announcement}', [AnnouncementController::class, 'destroy']);
     Route::get('/announcements/mine', [AnnouncementController::class, 'mine']);
     Route::post('/announcements', [AnnouncementController::class, 'store']);
 });

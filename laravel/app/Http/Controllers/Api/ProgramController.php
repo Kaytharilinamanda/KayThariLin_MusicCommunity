@@ -14,16 +14,12 @@ class ProgramController extends Controller
         'workshops' => 'workshop',
         'courses' => 'course',
         'categories' => 'category',
-        'centers' => 'center',
-        'enrollments' => 'enrollment',
     ];
 
     private const SPECS = [
         'workshop' => ['required' => ['title', 'instructor', 'category', 'date', 'startTime', 'endTime', 'location', 'city'], 'numbers' => ['fee', 'seats']],
         'course' => ['required' => ['title', 'instrument', 'level', 'instructor', 'center', 'date', 'startTime', 'endTime', 'location'], 'numbers' => ['price'], 'text' => ['schedule']],
         'category' => ['required' => ['name'], 'numbers' => ['courses']],
-        'center' => ['required' => ['name', 'city', 'email'], 'text' => ['area', 'phone', 'hours', 'focus']],
-        'enrollment' => ['required' => ['student', 'email', 'course', 'center', 'date']],
     ];
 
     private const KEEP = ['slug', 'image', 'imageClass', 'avatar', 'instructorRole', 'summary', 'description', 'learn', 'includes', 'outcomes', 'duration', 'popular', 'centerId', 'school', 'address', 'blurb', 'time'];
@@ -72,12 +68,28 @@ class ProgramController extends Controller
         $row = Program::create([
             'organizer_id' => $actor->id,
             'kind' => $programKind,
-            'payload' => $this->sanitize($programKind, $request->all()),
+            'payload' => $this->payload($actor, $programKind, null, $request->all()),
             'approval_status' => 'pending',
         ]);
         Records::notifyAdmins('Submission waiting for approval', $row->payload['title'] ?? $row->payload['name'] ?? $programKind);
 
         return response()->json(['item' => $this->desk($row->load('organizer'))], 201);
+    }
+
+    public function uploadImage(Request $request)
+    {
+        $actor = $request->user();
+        Records::requireOrganizer($actor);
+        $request->validate([
+            'photo' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:2048'],
+        ], [
+            'photo.required' => 'Choose a photo to upload.',
+            'photo.image' => 'Use a JPG, PNG, WEBP, or GIF photo.',
+            'photo.mimes' => 'Use a JPG, PNG, WEBP, or GIF photo.',
+            'photo.max' => 'Choose a photo smaller than 2 MB.',
+        ]);
+
+        return ['image' => $this->storeUpload($request->file('photo'), $actor)];
     }
 
     public function update(Request $request, string $kind, Program $program)
@@ -86,7 +98,7 @@ class ProgramController extends Controller
         $actor = $request->user();
         Records::requireOrganizer($actor);
         $this->own($actor, $program, $programKind);
-        $payload = $this->sanitize($programKind, $request->all());
+        $payload = $this->payload($actor, $programKind, $program, $request->all());
         foreach (self::KEEP as $key) {
             if (! array_key_exists($key, $payload) && isset($program->payload[$key])) {
                 $payload[$key] = $program->payload[$key];
@@ -107,6 +119,7 @@ class ProgramController extends Controller
         $programKind = $this->kind($kind);
         Records::requireOrganizer($request->user());
         $this->own($request->user(), $program, $programKind);
+        $this->forgetUpload($program->payload['image'] ?? null);
         $program->delete();
 
         return ['ok' => true];
@@ -182,6 +195,102 @@ class ProgramController extends Controller
         }
 
         return $payload;
+    }
+
+    private function payload(User $actor, string $kind, ?Program $program, array $body): array
+    {
+        $payload = $this->sanitize($kind, $body);
+        if (! in_array($kind, ['workshop', 'course'], true)) {
+            return $payload;
+        }
+        $image = $this->image($actor, $program, $body);
+        if ($image !== null) {
+            $payload['image'] = $image;
+        }
+
+        return $payload;
+    }
+
+    private function image(User $actor, ?Program $program, array $body): ?string
+    {
+        $submitted = trim((string) ($body['image'] ?? ''));
+        $current = $program ? (string) ($program->payload['image'] ?? '') : '';
+        if ($submitted === '' || ($program && $submitted === $current)) {
+            return $current !== '' ? $current : null;
+        }
+        $pattern = '#^/uploads/programs/'.preg_quote((string) $actor->id, '#').'-[a-f0-9]{16}\.(jpg|png|webp|gif)$#';
+        if (! preg_match($pattern, $submitted) || ! $this->uploadExists($submitted)) {
+            Records::fail('Upload a JPG, PNG, WEBP, or GIF photo.');
+        }
+        if ($current !== '' && $current !== $submitted) {
+            $this->forgetUpload($current);
+        }
+
+        return $submitted;
+    }
+
+    private function storeUpload($file, User $actor): string
+    {
+        $extension = strtolower((string) ($file->guessExtension() ?: 'jpg'));
+        if ($extension === 'jpeg') {
+            $extension = 'jpg';
+        }
+        if (! in_array($extension, ['jpg', 'png', 'webp', 'gif'], true)) {
+            Records::fail('Use a JPG, PNG, WEBP, or GIF photo.');
+        }
+        $name = $actor->id.'-'.bin2hex(random_bytes(8)).'.'.$extension;
+        $bytes = file_get_contents($file->getRealPath());
+        if ($bytes === false) {
+            Records::fail('That photo could not be read.');
+        }
+        foreach ($this->uploadDirectories() as $directory) {
+            if (! is_dir($directory) && ! mkdir($directory, 0755, true) && ! is_dir($directory)) {
+                Records::fail('The photo could not be saved.');
+            }
+            if (file_put_contents($directory.DIRECTORY_SEPARATOR.$name, $bytes) === false) {
+                Records::fail('The photo could not be saved.');
+            }
+        }
+
+        return '/uploads/programs/'.$name;
+    }
+
+    private function uploadExists(string $url): bool
+    {
+        $name = basename($url);
+        foreach ($this->uploadDirectories() as $directory) {
+            if (is_file($directory.DIRECTORY_SEPARATOR.$name)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function forgetUpload(?string $url): void
+    {
+        if (! is_string($url) || ! preg_match('#^/uploads/programs/[A-Za-z0-9._-]+$#', $url)) {
+            return;
+        }
+        $name = basename($url);
+        foreach ($this->uploadDirectories() as $directory) {
+            $file = $directory.DIRECTORY_SEPARATOR.$name;
+            if (is_file($file)) {
+                unlink($file);
+            }
+        }
+    }
+
+    private function uploadDirectories(): array
+    {
+        if (app()->runningUnitTests()) {
+            return [storage_path('framework/testing/uploads/programs')];
+        }
+
+        return [
+            public_path('uploads/programs'),
+            dirname(base_path()).DIRECTORY_SEPARATOR.'public'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR.'programs',
+        ];
     }
 
     private function desk(Program $row): array

@@ -8,7 +8,7 @@ export default function ManageTickets() {
   return (
     <ApprovalQueue
       title="Tickets"
-      description="Approve or reject ticket tiers submitted by organizers. Approved tickets go on sale with an approved event. This desk does not create, edit, or delete tickets."
+      description="Approve or reject ticket types submitted by organizers. Approved tickets go on sale with an approved event. This desk does not create, edit, or delete tickets."
       listKey="tickets"
       reviewBase="/api/tickets"
       searchKeys={["event", "tier", "organizer"]}
@@ -35,7 +35,7 @@ export default function ManageTickets() {
       )}
       detail={(row) => [
         ["Event", row.event],
-        ["Tier", row.tier],
+        ["Ticket type", row.tier],
         ["Organizer", row.organization ? `${row.organizer} · ${row.organization}` : row.organizer],
         ["Price", money(row.price)],
         ["Quantity", String(row.quantity)],

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\CourseEnrollment;
 use App\Models\Event;
 use App\Models\Notification;
 use App\Models\Program;
@@ -60,7 +59,7 @@ class ReportController extends Controller
     {
         Records::requireAdmin($request->user());
         $orders = TicketOrder::query()->get();
-        $paid = $orders->where('status', 'Paid');
+        $paid = $orders->whereIn('status', ['Paid', 'Confirmed']);
         $events = Event::query()->get();
         $colors = ['Pop' => '#f6c9cb', 'Hip-Hop' => '#b42334', 'R&B' => '#7a1220', 'Rock' => '#e7a4a8'];
         $genre = $events->where('approval_status', 'approved')->groupBy('category')->map(function ($group, $label) use ($colors) {
@@ -69,7 +68,7 @@ class ReportController extends Controller
         $series = collect(range(5, 0))->map(function ($ago) {
             $month = now()->subMonths($ago);
             $total = TicketOrder::query()
-                ->where('status', 'Paid')
+                ->whereIn('status', ['Paid', 'Confirmed'])
                 ->whereBetween('created_at', [$month->copy()->startOfMonth(), $month->copy()->endOfMonth()])
                 ->sum('total');
 
@@ -84,7 +83,6 @@ class ReportController extends Controller
             'events' => $events->count(),
             'pendingEvents' => $events->where('approval_status', 'pending')->count(),
             'workshops' => Program::query()->where('kind', 'workshop')->count(),
-            'enrollments' => CourseEnrollment::query()->count() + Program::query()->where('kind', 'enrollment')->count(),
             'registrations' => WorkshopRegistration::query()->count(),
             'accounts' => User::query()->count(),
             'announcements' => \App\Models\Announcement::query()->where('status', 'Published')->count(),

@@ -1,4 +1,4 @@
-import { courses as courseCatalog, events as catalog, schools, workshops as workshopCatalog } from "../data/content"
+import { courses as courseCatalog, events as catalog, workshops as workshopCatalog } from "../data/content"
 import { api } from "./api"
 
 const CACHE_KEY = "harmony-live-catalog"
@@ -100,21 +100,6 @@ function liveCourse(item) {
   }
 }
 
-function liveCenter(item) {
-  return {
-    ...item,
-    id: item.slug || `live-center-${item.id}`,
-    area: item.area || "",
-    address: item.address || [item.area, item.city].filter(Boolean).join(", "),
-    phone: item.phone || "",
-    email: item.email || "",
-    hours: item.hours || "",
-    image: item.image || "/images/studio.jpg",
-    focus: item.focus || "",
-    blurb: item.blurb || item.focus || item.name,
-  }
-}
-
 async function loadPublic(key, path, mapItem, catalogRows) {
   try {
     const data = await api(path)
@@ -130,8 +115,4 @@ export function loadPublishedWorkshops() {
 
 export function loadPublishedCourses() {
   return loadPublic("courses", "/api/programs/courses/public", liveCourse, courseCatalog)
-}
-
-export function loadPublishedCenters() {
-  return loadPublic("centers", "/api/programs/centers/public", liveCenter, schools)
 }

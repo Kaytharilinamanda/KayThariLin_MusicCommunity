@@ -1,8 +1,6 @@
 import {
   BarChart3,
-  Building2,
   CalendarDays,
-  ClipboardList,
   Drum,
   GraduationCap,
   LayoutDashboard,
@@ -34,8 +32,6 @@ const groups = [
       { to: "/admin/workshops", label: "Workshops", icon: Drum },
       { to: "/admin/courses", label: "Courses", icon: GraduationCap },
       { to: "/admin/categories", label: "Course categories", icon: Tags },
-      { to: "/admin/centers", label: "Music centers", icon: Building2 },
-      { to: "/admin/enrollments", label: "Enrollments", icon: ClipboardList },
     ],
   },
   {

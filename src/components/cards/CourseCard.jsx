@@ -2,7 +2,6 @@ import { Link } from "react-router-dom"
 import { AudioLines, BookOpen, Drum, Guitar, Headphones, MicVocal, Music2, Piano } from "lucide-react"
 import Badge from "../ui/Badge"
 import Cover from "../ui/Cover"
-import { schoolById } from "../../data/content"
 import { longDate, money, timeRange } from "../../lib/format"
 
 const icons = {
@@ -17,7 +16,6 @@ const icons = {
 }
 
 export default function CourseCard({ course }) {
-  const school = schoolById(course.centerId)
   const Icon = icons[course.instrument] || Music2
 
   return (
@@ -48,7 +46,7 @@ export default function CourseCard({ course }) {
           <Cover src={course.avatar} alt="" className="h-9 w-9 rounded-full" />
           <div>
             <p className="text-sm text-white">{course.instructor}</p>
-            <p className="text-xs text-zinc-500">{school?.name || course.center}</p>
+            <p className="text-xs text-zinc-500">{course.center}</p>
           </div>
         </div>
         <div className="mt-4 flex items-end justify-between border-t border-white/8 pt-3">
@@ -56,7 +54,6 @@ export default function CourseCard({ course }) {
             <p className="text-lg font-semibold text-white">{money(course.price)}</p>
             <p className="text-xs text-zinc-500">{course.duration}</p>
           </div>
-          <p className="text-xs text-zinc-400">{school?.city}</p>
         </div>
       </div>
     </Link>

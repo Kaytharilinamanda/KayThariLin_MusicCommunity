@@ -7,15 +7,16 @@ export default function ManageAnnouncements() {
   return (
     <ResourceScreen
       title="Announcements"
-      description="Notes published by organizers. This desk reads them."
+      description="Notes published by organizers. Open one to read it, or remove it. Organizers still publish them."
       createLabel="Add announcement"
       endpoint="/api/announcements/manage"
       listKey="announcements"
       readOnly
+      canDelete
       seed={[]}
       searchKeys={["title", "audience", "channel"]}
       filters={[{ key: "status", label: "Statuses", options: ["Published", "Draft", "Scheduled"] }]}
-      columns={["Announcement", "Audience", "Channel", "Date", "Status", ""]}
+      columns={["Announcement", "Audience", "Channel", "Date", "Status", "Actions"]}
       fields={[
         { name: "title", label: "Title" },
         { name: "audience", label: "Audience" },
@@ -39,6 +40,7 @@ export default function ManageAnnouncements() {
         ["Audience", row.audience],
         ["Channel", row.channel],
         ["Date", longDate(row.date)],
+        ["Body", row.body || "No message."],
         ["Status", row.status],
       ]}
     />

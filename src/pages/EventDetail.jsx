@@ -168,7 +168,7 @@ export default function EventDetail() {
               </span>
               <h2 className="mt-4 font-display text-2xl text-white">You are on the list.</h2>
               <p className="mt-2 text-sm text-zinc-400">
-                {qty} × {tier.name} for {event.title}. The order is on your account page. Payment stays on this design screen.
+                {qty} × {tier.name} for {event.title}. The organizer confirms the order. It is listed on your account page.
               </p>
               <Button to="/account/orders" className="mt-5">
                 View order

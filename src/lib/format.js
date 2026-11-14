@@ -70,6 +70,7 @@ export function statusTone(status) {
     "On sale": "green",
     Held: "neutral",
     Confirmed: "green",
+    Enrolled: "green",
     Paid: "green",
     Active: "green",
     Visible: "green",

@@ -89,7 +89,7 @@ export default function WorkshopDetail() {
       return
     }
     setDone(true)
-    notify("Registered. The seat is listed under your account.")
+    notify("Registered. The organizer will confirm your seat.")
   }
 
   return (
@@ -141,7 +141,7 @@ export default function WorkshopDetail() {
           <p className="text-sm text-zinc-400">Workshop Fee ({money(workshop.fee)})</p>
           {done ? (
             <div className="mt-6 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">
-              You are registered for {workshop.title}. Open your account to manage the seat.
+              You are registered for {workshop.title}. The organizer confirms the seat, and it is listed under your account.
             </div>
           ) : user?.role !== "user" ? (
             <div className="mt-5">

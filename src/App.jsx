@@ -17,7 +17,6 @@ import NotFound from "./pages/NotFound"
 import RequireAuth from "./components/auth/RequireAuth"
 import { AccountCourses, AccountFeedback, AccountLayout, AccountOrders, AccountProfile, AccountWorkshops } from "./pages/account/AccountPages"
 import {
-  OrganizerAds,
   OrganizerAnnouncements,
   OrganizerEnquiries,
   OrganizerEvents,
@@ -30,7 +29,6 @@ import {
 } from "./pages/organizer/OrganizerPages"
 import {
   OrganizerCategories,
-  OrganizerCenters,
   OrganizerCourses,
   OrganizerEnrollments,
   OrganizerWorkshops,
@@ -40,8 +38,6 @@ import ManageEvents from "./pages/admin/ManageEvents"
 import ManageTickets from "./pages/admin/ManageTickets"
 import ManageWorkshops from "./pages/admin/ManageWorkshops"
 import ManageCourses from "./pages/admin/ManageCourses"
-import ManageCenters from "./pages/admin/ManageCenters"
-import ManageEnrollments from "./pages/admin/ManageEnrollments"
 import ManageUsers from "./pages/admin/ManageUsers"
 import ManageOrganizers from "./pages/admin/ManageOrganizers"
 import ManagePosts from "./pages/admin/ManagePosts"
@@ -99,12 +95,10 @@ export default function App() {
         <Route path="profile" element={<OrganizerProfile />} />
         <Route path="events" element={<OrganizerEvents />} />
         <Route path="announcements" element={<OrganizerAnnouncements />} />
-        <Route path="ads" element={<OrganizerAds />} />
         <Route path="tickets" element={<OrganizerTicketSetup />} />
         <Route path="workshops" element={<OrganizerWorkshops />} />
         <Route path="courses" element={<OrganizerCourses />} />
         <Route path="categories" element={<OrganizerCategories />} />
-        <Route path="centers" element={<OrganizerCenters />} />
         <Route path="enrollments" element={<OrganizerEnrollments />} />
         <Route path="orders" element={<OrganizerOrders />} />
         <Route path="enquiries" element={<OrganizerEnquiries />} />
@@ -123,8 +117,6 @@ export default function App() {
         <Route path="tickets" element={<ManageTickets />} />
         <Route path="workshops" element={<ManageWorkshops />} />
         <Route path="courses" element={<ManageCourses />} />
-        <Route path="centers" element={<ManageCenters />} />
-        <Route path="enrollments" element={<ManageEnrollments />} />
         <Route path="users" element={<ManageUsers />} />
         <Route path="organizers" element={<ManageOrganizers />} />
         <Route path="posts" element={<ManagePosts />} />

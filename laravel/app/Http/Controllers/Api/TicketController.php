@@ -11,6 +11,8 @@ use Illuminate\Http\Request;
 
 class TicketController extends Controller
 {
+    private const TYPES = ['General admission', 'VIP', 'Front row', 'Balcony', 'Student'];
+
     public function index(Request $request)
     {
         $actor = $request->user();
@@ -48,7 +50,7 @@ class TicketController extends Controller
         $this->own($actor, $ticket);
         $event = $this->eventFor($actor, $request->input('eventId'));
         $ticket->fill([
-            ...$this->fields($request->all()),
+            ...$this->fields($request->all(), $ticket->name),
             'event_id' => $event->id,
             'approval_status' => 'pending',
             'rejection_reason' => '',
@@ -101,7 +103,7 @@ class TicketController extends Controller
         return $event;
     }
 
-    private function fields(array $body): array
+    private function fields(array $body, string $current = ''): array
     {
         $name = trim((string) ($body['tier'] ?? $body['name'] ?? ''));
         $price = is_numeric($body['price'] ?? null) ? (float) $body['price'] : NAN;
@@ -109,8 +111,8 @@ class TicketController extends Controller
         $note = substr(trim((string) ($body['note'] ?? '')), 0, 255);
         $salesStart = Records::dateOrNull($body['salesStart'] ?? '', 'sales start');
         $salesEnd = Records::dateOrNull($body['salesEnd'] ?? '', 'sales end');
-        if (strlen($name) < 2) {
-            Records::fail('Name the ticket.');
+        if (! in_array($name, self::TYPES, true) && $name !== $current) {
+            Records::fail('Choose a ticket type.');
         }
         if (! is_finite($price) || $price < 0) {
             Records::fail('Enter a ticket price of zero or more.');

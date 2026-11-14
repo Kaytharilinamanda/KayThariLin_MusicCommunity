@@ -40,8 +40,10 @@ class CommunityController extends Controller
             'author' => $post->author_name,
             'excerpt' => $post->text,
             'topic' => $post->topic,
+            'image' => $post->image,
             'likes' => (int) $post->likes_count,
             'status' => $post->status,
+            'date' => Records::day($post->created_at),
         ])->values()];
     }
 
@@ -172,6 +174,14 @@ class CommunityController extends Controller
         return response()->json(['post' => $this->post($share, false, $actor->id)], 201);
     }
 
+    public function adminDestroy(Request $request, Post $post)
+    {
+        Records::requireAdmin($request->user());
+        $this->removePost($post);
+
+        return ['ok' => true];
+    }
+
     public function destroy(Request $request, Post $post)
     {
         $actor = $request->user();
@@ -179,13 +189,18 @@ class CommunityController extends Controller
         if ((int) $post->user_id !== (int) $actor->id) {
             Records::fail('You can only delete your own posts.', 403);
         }
+        $this->removePost($post);
+
+        return ['ok' => true];
+    }
+
+    private function removePost(Post $post): void
+    {
         if ($post->shared_post_id) {
             Post::query()->whereKey($post->shared_post_id)->where('shares_count', '>', 0)->decrement('shares_count');
         }
         $this->forgetUpload($post->image);
         $post->delete();
-
-        return ['ok' => true];
     }
 
     public function members(Request $request)

@@ -6,15 +6,16 @@ export default function ManagePosts() {
   return (
     <ResourceScreen
       title="Community posts"
-      description="Posts saved by members. This desk can read the feed. Members create the posts."
+      description="Posts saved by members. Open a post to read it, or remove it from the feed. Members create the posts."
       createLabel="Add post"
       endpoint="/api/posts/manage"
       listKey="posts"
       readOnly
+      canDelete
       seed={[]}
       searchKeys={["author", "excerpt", "topic"]}
       filters={[{ key: "status", label: "Statuses", options: ["Visible", "Hidden"] }, { key: "topic", label: "Topics", options: ["Hip-Hop", "Practice", "Guitar", "Rock", "Production", "Songwriting"] }]}
-      columns={["Author", "Post", "Topic", "Likes", "Status", ""]}
+      columns={["Author", "Post", "Topic", "Likes", "Status", "Actions"]}
       fields={[
         { name: "author", label: "Author" },
         { name: "excerpt", label: "Excerpt", type: "textarea" },
@@ -25,7 +26,10 @@ export default function ManagePosts() {
       renderCells={(row) => (
         <>
           <Cell className="font-medium text-white">{row.author}</Cell>
-          <Cell className="max-w-xs">{row.excerpt}</Cell>
+          <Cell className="max-w-xs">
+            <p className="line-clamp-3 whitespace-pre-wrap">{row.excerpt || "Photo post"}</p>
+            {row.image ? <img src={row.image} alt="" className="mt-2 h-14 w-20 rounded-lg object-cover" /> : null}
+          </Cell>
           <Cell>{row.topic}</Cell>
           <Cell>{row.likes}</Cell>
           <Cell>
@@ -35,8 +39,10 @@ export default function ManagePosts() {
       )}
       detail={(row) => [
         ["Author", row.author],
+        ["Date", row.date],
         ["Topic", row.topic],
-        ["Excerpt", row.excerpt],
+        ["Post", row.excerpt || "No written text."],
+        ["Photo", row.image || "None"],
         ["Likes", row.likes],
         ["Status", row.status],
       ]}

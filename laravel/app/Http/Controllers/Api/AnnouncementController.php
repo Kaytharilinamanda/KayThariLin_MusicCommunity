@@ -25,9 +25,10 @@ class AnnouncementController extends Controller
                 Records::fail('Sign in again.', 401);
             }
             $query->where('user_id', $actor->id);
-            if ($request->filled('kind')) {
-                $query->where('kind', $request->input('kind'));
+            if ($request->input('kind') === 'ad') {
+                Records::fail('Advertisements are not available.', 404);
             }
+            $query->where('kind', 'announcement');
         } else {
             $query->where('status', 'Published');
             $query->where('kind', 'announcement');
@@ -40,7 +41,7 @@ class AnnouncementController extends Controller
     {
         Records::requireAdmin($request->user());
 
-        return ['announcements' => Announcement::query()->orderByDesc('id')->get()->map(fn (Announcement $row) => $this->row($row))->values()];
+        return ['announcements' => Announcement::query()->where('kind', 'announcement')->orderByDesc('id')->get()->map(fn (Announcement $row) => $this->row($row))->values()];
     }
 
     public function store(Request $request)
@@ -56,21 +57,31 @@ class AnnouncementController extends Controller
         if (strlen($title) < 3) {
             Records::fail('Add a title.');
         }
-        $kind = $request->input('kind') === 'ad' ? 'ad' : 'announcement';
+        if ($request->input('kind') === 'ad') {
+            Records::fail('Advertisements are not available.', 404);
+        }
         $row = Announcement::create([
             'user_id' => $actor->id,
-            'kind' => $kind,
+            'kind' => 'announcement',
             'title' => $title,
             'event_name' => trim((string) $request->input('event', '')),
             'audience' => trim((string) $request->input('audience', 'Ticket holders')),
-            'placement' => trim((string) $request->input('placement', '')),
-            'channel' => trim((string) $request->input('channel', $kind === 'ad' ? 'Event page' : 'Community')) ?: 'Community',
+            'placement' => '',
+            'channel' => trim((string) $request->input('channel', 'Community')) ?: 'Community',
             'body' => trim((string) $request->input('body', '')),
             'status' => in_array($request->input('status'), ['Published', 'Draft', 'Scheduled'], true) ? $request->input('status') : 'Published',
             'published_on' => Records::dateOrNull($request->input('date', now()->toDateString()), 'date') ?: now()->toDateString(),
         ]);
 
         return response()->json(['announcement' => $this->row($row)], 201);
+    }
+
+    public function destroy(Request $request, Announcement $announcement)
+    {
+        Records::requireAdmin($request->user());
+        $announcement->delete();
+
+        return ['ok' => true];
     }
 
     private function row(Announcement $row): array

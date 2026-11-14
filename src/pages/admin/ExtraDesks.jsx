@@ -15,17 +15,17 @@ export function ManageFeedback() {
   return (
     <ResourceScreen
       title="Feedback and reviews"
-      description="Reviews and enquiries stored by members. This desk reads them."
+      description="Reviews and notes stored by members. Organizers see this same list."
       createLabel="Add note"
       endpoint="/api/reviews"
       listKey="reviews"
       readOnly
       seed={[]}
-      searchKeys={["target", "kind", "text"]}
+      searchKeys={["target", "kind", "text", "from"]}
       filters={[
         { key: "kind", label: "Kinds", options: ["Event", "Workshop", "Course", "Complaint"] },
       ]}
-      columns={["About", "Kind", "Rating", "Note", ""]}
+      columns={["From", "About", "Kind", "Rating", "Note", ""]}
       fields={[
         { name: "target", label: "About" },
         { name: "kind", label: "Kind", type: "select", options: ["Event", "Workshop", "Course", "Complaint"] },
@@ -34,13 +34,15 @@ export function ManageFeedback() {
       ]}
       renderCells={(row) => (
         <>
-          <Cell className="font-medium text-white">{row.target}</Cell>
+          <Cell className="font-medium text-white">{row.from || "Member"}</Cell>
+          <Cell>{row.target}</Cell>
           <Cell>{row.kind}</Cell>
           <Cell>{row.rating || "—"}</Cell>
           <Cell>{row.text}</Cell>
         </>
       )}
       detail={(row) => [
+        ["From", row.from || "Member"],
         ["About", row.target],
         ["Kind", row.kind],
         ["Rating", String(row.rating || "—")],
@@ -81,7 +83,7 @@ export function ManageReports() {
   const { notify } = useAppState()
   const [report, setReport] = useState(null)
   const [busy, setBusy] = useState(false)
-  const [dash, setDash] = useState({ sales: 0, seats: 0, registrations: 0, enrollments: 0, revenueSeries: [], activity: [] })
+  const [dash, setDash] = useState({ sales: 0, seats: 0, registrations: 0, revenueSeries: [], activity: [] })
 
   useEffect(() => {
     api("/api/dashboard").then((data) => setDash(data.dashboard || {})).catch(() => {})
@@ -156,8 +158,7 @@ export function ManageReports() {
         {[
           ["Ticket sales", money(sales)],
           ["Seats sold", String(seats)],
-          ["Workshop registrations", String(dash.registrations || 0)],
-          ["Course enrollments", String(dash.enrollments || 0)],
+          ["Workshop programs", String(dash.workshops || 0)],
         ].map(([label, value]) => (
           <article key={label} className="rounded-2xl border border-white/10 bg-panel p-4">
             <p className="text-sm text-zinc-400">{label}</p>

@@ -11,17 +11,10 @@ const explore = [
 
 const year = new Date().getFullYear()
 
-const studios = [
-  "Violet Street Academy",
-  "Northlight Music Lab",
-  "The Resonance Center",
-  "Harbor Conservatory",
-]
-
 export default function Footer() {
   return (
     <footer className="border-t border-[#f3d6da] bg-raised/70">
-      <Container className="grid gap-10 py-14 md:grid-cols-2 lg:grid-cols-4">
+      <Container className="grid gap-10 py-14 md:grid-cols-2 lg:grid-cols-3">
         <div>
           <Logo />
           <p className="mt-4 max-w-xs text-sm leading-6 text-zinc-400">
@@ -37,14 +30,6 @@ export default function Footer() {
                   {item.label}
                 </Link>
               </li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">Studios</p>
-          <ul className="mt-4 space-y-2 text-sm text-zinc-300">
-            {studios.map((studio) => (
-              <li key={studio}>{studio}</li>
             ))}
           </ul>
         </div>

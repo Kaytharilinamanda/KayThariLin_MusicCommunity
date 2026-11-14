@@ -37,6 +37,7 @@ export default function ResourceScreen({
   endpoint = "",
   listKey = "items",
   readOnly = false,
+  canDelete = false,
 }) {
   const { notify } = useAppState()
   const [rows, setRows] = useState(seed || [])
@@ -196,17 +197,28 @@ export default function ResourceScreen({
               <tr key={row.id} className="align-middle hover:bg-white/[0.03]">
                 {renderCells(row)}
                 <td className="px-4 py-3 text-right">
-                  <ActionMenu
-                    items={
-                      readOnly
-                        ? [{ label: "View", onClick: () => setViewing(row) }]
-                        : [
-                            { label: "View", onClick: () => setViewing(row) },
-                            { label: "Edit", onClick: () => openEdit(row) },
-                            { label: "Remove", danger: true, onClick: () => setRemoving(row) },
-                          ]
-                    }
-                  />
+                  {readOnly && canDelete ? (
+                    <div className="flex justify-end gap-2">
+                      <Button variant="secondary" className="px-3 py-1.5 text-xs" onClick={() => setViewing(row)}>
+                        View
+                      </Button>
+                      <Button variant="danger" className="px-3 py-1.5 text-xs" onClick={() => setRemoving(row)}>
+                        Remove
+                      </Button>
+                    </div>
+                  ) : (
+                    <ActionMenu
+                      items={
+                        readOnly
+                          ? [{ label: "View", onClick: () => setViewing(row) }]
+                          : [
+                              { label: "View", onClick: () => setViewing(row) },
+                              { label: "Edit", onClick: () => openEdit(row) },
+                              { label: "Remove", danger: true, onClick: () => setRemoving(row) },
+                            ]
+                      }
+                    />
+                  )}
                 </td>
               </tr>
             ))}
@@ -260,14 +272,23 @@ export default function ResourceScreen({
       <Modal open={Boolean(viewing)} title="Details" onClose={() => setViewing(null)}>
         {viewing && (
           <dl className="divide-y divide-white/8">
-            {detail(viewing).map(([label, value]) => (
-              <div key={label} className="flex items-start justify-between gap-4 py-2.5 text-sm">
-                <dt className="text-zinc-500">{label}</dt>
-                <dd className={cn("text-right text-zinc-100", label === "Status" && "text-left")}>
-                  {label === "Status" ? <StatusBadge status={value} /> : value}
-                </dd>
-              </div>
-            ))}
+            {detail(viewing).map(([label, value]) => {
+              const block = label === "Post" || label === "Body" || label === "Photo"
+              return (
+                <div key={label} className={block ? "py-2.5 text-sm" : "flex items-start justify-between gap-4 py-2.5 text-sm"}>
+                  <dt className="text-zinc-500">{label}</dt>
+                  <dd className={cn(block ? "mt-1 whitespace-pre-wrap text-left text-zinc-100" : "text-right text-zinc-100", label === "Status" && "text-left")}>
+                    {label === "Status" ? (
+                      <StatusBadge status={value} />
+                    ) : label === "Photo" && typeof value === "string" && value.startsWith("/") ? (
+                      <img src={value} alt="" className="max-h-56 rounded-xl object-cover" />
+                    ) : (
+                      value || "—"
+                    )}
+                  </dd>
+                </div>
+              )
+            })}
           </dl>
         )}
       </Modal>

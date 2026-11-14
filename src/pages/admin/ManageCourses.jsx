@@ -33,7 +33,7 @@ export default function ManageCourses() {
         ["Instrument", row.instrument],
         ["Level", row.level],
         ["Instructor", row.instructor],
-        ["Center", row.center],
+        ["Studio", row.center],
         ["Organizer", row.organizer],
         ["Date", longDate(row.date)],
         ["Starting time", timeRange(row.startTime)],
@@ -41,6 +41,7 @@ export default function ManageCourses() {
         ["Location", row.location],
         ["Weekly schedule", row.schedule],
         ["Price", money(row.price)],
+        ["Photo", row.image ? <img src={row.image} alt="" className="h-28 w-40 rounded-xl object-cover" /> : ""],
         ["Status", row.status],
         ["Rejection reason", row.rejectionReason],
       ]}

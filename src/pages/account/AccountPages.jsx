@@ -128,7 +128,7 @@ export function AccountOrders() {
     <section>
       <h1 className="font-display text-3xl text-white">Ticket orders</h1>
       <p className="mt-2 mb-6 max-w-2xl text-sm text-zinc-400">
-        Reservations you confirm are stored with your account. Cancel returns the seats. A refund request is recorded for the organizer.
+        Reservations wait for the organizer to confirm them. Cancel returns the seats. A refund request is recorded for the organizer.
       </p>
       <DataTable
         columns={["Order", "Tickets", "Total", "Status", ""]}
@@ -144,7 +144,7 @@ export function AccountOrders() {
             <Td>{money(row.total)}</Td>
             <Td><StatusBadge status={row.status} /></Td>
             <Td>
-              {row.status === "Paid" || row.status === "Pending" ? (
+              {row.status === "Paid" || row.status === "Pending" || row.status === "Confirmed" ? (
                 <div className="flex gap-2">
                   <Button variant="secondary" onClick={() => mark(row, "Refund requested", "Refund request saved on this page.")}>
                     Refund
@@ -174,7 +174,7 @@ export function AccountWorkshops() {
   return (
     <section>
       <h1 className="font-display text-3xl text-white">Workshop registrations</h1>
-      <p className="mt-2 mb-6 max-w-2xl text-sm text-zinc-400">Registrations from the workshop pages are stored on your account.</p>
+      <p className="mt-2 mb-6 max-w-2xl text-sm text-zinc-400">Registrations from the workshop pages are stored on your account. The organizer confirms the seat.</p>
       <DataTable
         columns={["Workshop", "When", "City", "Status", ""]}
         rows={rows}
@@ -186,7 +186,7 @@ export function AccountWorkshops() {
             <Td>{row.city}</Td>
             <Td><StatusBadge status={row.status} /></Td>
             <Td>
-              {row.status === "Confirmed" && (
+              {(row.status === "Pending" || row.status === "Confirmed") && (
                 <Button
                   variant="secondary"
                   onClick={async () => {
@@ -223,10 +223,10 @@ export function AccountCourses() {
     <section>
       <h1 className="font-display text-3xl text-white">Course enrollments</h1>
       <p className="mt-2 mb-6 max-w-2xl text-sm text-zinc-400">
-        Enrollment requests from a course page are stored here. Schools, fees, and schedules stay on the course pages.
+        Courses you enrolled in are stored here. The organizer confirms the enrollment. The admin desk does not see it.
       </p>
       <DataTable
-        columns={["Course", "Learning center", "Date", "Status"]}
+        columns={["Course", "Studio", "Date", "Status"]}
         rows={rows}
         empty="No course enrollments yet."
         render={(row) => (

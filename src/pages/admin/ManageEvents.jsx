@@ -45,6 +45,7 @@ export default function ManageEvents() {
         ["Address", row.address],
         ["City", row.city],
         ["From price", money(row.price)],
+        ["Poster", row.image ? <img src={row.image} alt="" className="h-40 w-28 rounded-xl object-cover" /> : ""],
         ["Status", row.status],
         ["Rejection reason", row.rejectionReason],
         ["Note", row.blurb],

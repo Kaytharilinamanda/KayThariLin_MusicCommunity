@@ -70,7 +70,7 @@ class BookingController extends Controller
                 'tier' => $ticket->name,
                 'qty' => $qty,
                 'total' => $total,
-                'status' => 'Paid',
+                'status' => 'Pending',
             ]);
             $order->code = 'NR-'.str_pad((string) $order->id, 4, '0', STR_PAD_LEFT);
             $order->save();
@@ -78,7 +78,7 @@ class BookingController extends Controller
             return $order;
         });
 
-        Records::notify($event->organizer_id, 'New ticket order', $order->code.' · '.$event->title);
+        Records::notify($event->organizer_id, 'Order waiting for confirmation', $order->code.' · '.$event->title);
         Records::notifyAdmins('New ticket order', $order->code.' · '.$event->title);
         Records::notify($actor->id, 'Tickets reserved', $order->code.' · '.$event->title);
 
@@ -88,10 +88,15 @@ class BookingController extends Controller
     public function updateOrder(Request $request, TicketOrder $order)
     {
         $actor = $request->user();
+        $status = (string) $request->input('status');
+        if ($actor->role === 'organizer') {
+            $this->confirmOrder($actor, $order, $status);
+
+            return ['order' => $this->order($order->fresh())];
+        }
         if ($actor->role !== 'admin' && $order->user_id !== $actor->id) {
             Records::fail('You can only change your own orders.', 403);
         }
-        $status = (string) $request->input('status');
         if (! in_array($status, ['Cancelled', 'Refund requested', 'Paid', 'Pending'], true)) {
             Records::fail('That order status is not available.');
         }
@@ -107,20 +112,52 @@ class BookingController extends Controller
         return ['order' => $this->order($order)];
     }
 
+    private function confirmOrder($actor, TicketOrder $order, string $status): void
+    {
+        if ($status !== 'Confirmed') {
+            Records::fail('Confirm the order from your desk.');
+        }
+        $event = Event::query()->find($order->event_id);
+        if (! $event || (int) $event->organizer_id !== (int) $actor->id) {
+            Records::fail('You can only confirm orders for your own events.', 403);
+        }
+        if (in_array($actor->status, ['suspended', 'rejected'], true)) {
+            Records::fail('This organizer account cannot confirm orders.', 403);
+        }
+        if (! in_array($order->status, ['Pending', 'Paid'], true)) {
+            Records::fail('This order is already closed.');
+        }
+        $order->status = 'Confirmed';
+        $order->save();
+        if ($order->user_id) {
+            Records::notify($order->user_id, 'Order confirmed', $order->code.' · '.$order->event_title);
+        }
+    }
+
     public function workshops(Request $request)
     {
+        $actor = $request->user();
+        $query = WorkshopRegistration::query()->orderByDesc('id');
+        if ($actor->role === 'organizer') {
+            $this->limitToOrganizer($query, $actor->id, 'workshop');
+        } elseif ($actor->role === 'admin') {
+            Records::fail('Workshop registrations stay with the organizer.', 403);
+        } else {
+            $query->where('user_id', $actor->id);
+        }
+
         return [
-            'registrations' => WorkshopRegistration::query()
-                ->where('user_id', $request->user()->id)
-                ->orderByDesc('id')
-                ->get()
-                ->map(fn (WorkshopRegistration $row) => [
-                    'id' => $row->id,
-                    'title' => $row->title,
-                    'date' => $row->event_date,
-                    'city' => $row->city,
-                    'status' => $row->status,
-                ])->values(),
+            'registrations' => $query->get()->map(fn (WorkshopRegistration $row) => [
+                'id' => $row->id,
+                'title' => $row->title,
+                'date' => $row->event_date,
+                'city' => $row->city,
+                'name' => $row->name,
+                'email' => $row->email,
+                'phone' => $row->phone,
+                'level' => $row->level,
+                'status' => $row->status,
+            ])->values(),
         ];
     }
 
@@ -149,10 +186,10 @@ class BookingController extends Controller
             'email' => $email,
             'phone' => $phone,
             'level' => trim((string) $request->input('level')),
-            'status' => 'Confirmed',
+            'status' => 'Pending',
         ]);
-        Records::notify($program->organizer_id, 'Workshop registration', $row->title);
-        Records::notify($actor->id, 'Workshop seat saved', $row->title);
+        Records::notify($program->organizer_id, 'Workshop registration waiting', $row->title.' · '.$name);
+        Records::notify($actor->id, 'Registration waiting for confirmation', $row->title);
 
         return response()->json(['registration' => [
             'id' => $row->id,
@@ -166,11 +203,19 @@ class BookingController extends Controller
     public function updateWorkshop(Request $request, WorkshopRegistration $registration)
     {
         $actor = $request->user();
+        if ($actor->role === 'organizer') {
+            $this->confirmSignup($actor, $registration, 'workshop', (string) $request->input('status'), 'Confirmed', 'Workshop seat confirmed');
+
+            return ['registration' => $this->registrationPayload($registration)];
+        }
         if ($registration->user_id !== $actor->id) {
             Records::fail('You can only change your own registrations.', 403);
         }
         if ($request->input('status') !== 'Cancelled') {
             Records::fail('That status is not available.');
+        }
+        if (! in_array($registration->status, ['Pending', 'Confirmed'], true)) {
+            Records::fail('This registration is already closed.');
         }
         $registration->status = 'Cancelled';
         $registration->save();
@@ -186,18 +231,28 @@ class BookingController extends Controller
 
     public function enrollments(Request $request)
     {
+        $actor = $request->user();
+        $query = CourseEnrollment::query()->orderByDesc('id');
+        if ($actor->role === 'organizer') {
+            $this->limitToOrganizer($query, $actor->id, 'course');
+        } elseif ($actor->role === 'admin') {
+            Records::fail('Enrollments stay with the organizer.', 403);
+        } else {
+            $query->where('user_id', $actor->id);
+        }
+
         return [
-            'enrollments' => CourseEnrollment::query()
-                ->where('user_id', $request->user()->id)
-                ->orderByDesc('id')
-                ->get()
-                ->map(fn (CourseEnrollment $row) => [
-                    'id' => $row->id,
-                    'title' => $row->title,
-                    'center' => $row->center,
-                    'date' => $row->event_date,
-                    'status' => $row->status,
-                ])->values(),
+            'enrollments' => $query->get()->map(fn (CourseEnrollment $row) => [
+                'id' => $row->id,
+                'title' => $row->title,
+                'center' => $row->center,
+                'date' => $row->event_date,
+                'name' => $row->name,
+                'email' => $row->email,
+                'phone' => $row->phone,
+                'message' => $row->message ?? '',
+                'status' => $row->status,
+            ])->values(),
         ];
     }
 
@@ -229,19 +284,8 @@ class BookingController extends Controller
             'message' => $message,
             'status' => 'Pending',
         ]);
-        if ($message !== '') {
-            Review::create([
-                'user_id' => $actor->id,
-                'target' => $row->title,
-                'kind' => 'Course',
-                'rating' => 0,
-                'text' => $message,
-                'status' => 'New',
-            ]);
-        }
-        Records::notify($program->organizer_id, 'Course enrollment', $row->title.' · '.$name);
-        Records::notifyAdmins('Enrollment waiting', $row->title.' · '.$name);
-        Records::notify($actor->id, 'Enrollment request saved', $row->title);
+        Records::notify($program->organizer_id, 'Course enrollment waiting', $row->title.' · '.$name);
+        Records::notify($actor->id, 'Enrollment waiting for confirmation', $row->title);
 
         return response()->json(['enrollment' => [
             'id' => $row->id,
@@ -252,14 +296,32 @@ class BookingController extends Controller
         ]], 201);
     }
 
+    public function updateEnrollment(Request $request, CourseEnrollment $enrollment)
+    {
+        $actor = $request->user();
+        if ($actor->role !== 'organizer') {
+            Records::fail('The organizer confirms this enrollment.', 403);
+        }
+        $this->confirmSignup($actor, $enrollment, 'course', (string) $request->input('status'), 'Enrolled', 'You are enrolled');
+
+        return ['enrollment' => [
+            'id' => $enrollment->id,
+            'title' => $enrollment->title,
+            'center' => $enrollment->center,
+            'date' => $enrollment->event_date,
+            'name' => $enrollment->name,
+            'email' => $enrollment->email,
+            'phone' => $enrollment->phone,
+            'message' => $enrollment->message ?? '',
+            'status' => $enrollment->status,
+        ]];
+    }
+
     public function reviews(Request $request)
     {
         $actor = $request->user();
         $query = Review::query()->with('user')->orderByDesc('id');
-        if ($actor->role === 'organizer') {
-            $titles = $this->organizerTitles($actor->id);
-            $query->whereIn('target', $titles);
-        } elseif ($actor->role !== 'admin') {
+        if (! in_array($actor->role, ['admin', 'organizer'], true)) {
             $query->where('user_id', $actor->id);
         }
 
@@ -328,13 +390,14 @@ class BookingController extends Controller
         if ($actor->role !== 'organizer') {
             Records::fail('Only an organizer can view these enquiries.', 403);
         }
-        $titles = $this->organizerTitles($actor->id);
-        $rows = Review::query()->with('user')->whereIn('target', $titles)->orderByDesc('id')->get();
+        $rows = Review::query()->with('user')->orderByDesc('id')->get();
 
         return ['enquiries' => $rows->map(fn (Review $review) => [
             'id' => $review->id,
             'from' => $review->user?->name ?? 'Member',
             'event' => $review->target,
+            'kind' => $review->kind,
+            'rating' => (int) $review->rating,
             'message' => $review->text,
             'status' => $review->status,
         ])->values()];
@@ -422,14 +485,57 @@ class BookingController extends Controller
         return $program;
     }
 
-    private function organizerTitles(int $organizerId): array
+    private function registrationPayload(WorkshopRegistration $row): array
     {
-        $events = Event::query()->where('organizer_id', $organizerId)->pluck('title');
-        $programs = Program::query()->where('organizer_id', $organizerId)->get()->map(function (Program $program) {
-            return $program->payload['title'] ?? $program->payload['name'] ?? null;
-        })->filter();
+        return [
+            'id' => $row->id,
+            'title' => $row->title,
+            'date' => $row->event_date,
+            'city' => $row->city,
+            'name' => $row->name,
+            'email' => $row->email,
+            'phone' => $row->phone,
+            'level' => $row->level,
+            'status' => $row->status,
+        ];
+    }
 
-        return $events->merge($programs)->unique()->values()->all();
+    private function confirmSignup($actor, $row, string $kind, string $requested, string $accepted, string $note): void
+    {
+        if ($requested !== $accepted) {
+            Records::fail('Confirm this from your desk.');
+        }
+        if (in_array($actor->status, ['suspended', 'rejected'], true)) {
+            Records::fail('This organizer account cannot confirm students.', 403);
+        }
+        $owned = $row->newQuery()->whereKey($row->getKey());
+        $this->limitToOrganizer($owned, (int) $actor->id, $kind);
+        if (! $owned->exists()) {
+            Records::fail('You can only confirm students on your own workshops and courses.', 403);
+        }
+        if ($row->status !== 'Pending') {
+            Records::fail('This is already confirmed.');
+        }
+        $row->status = $accepted;
+        $row->save();
+        if ($row->user_id) {
+            Records::notify($row->user_id, $note, $row->title);
+        }
+    }
+
+    private function limitToOrganizer($query, int $organizerId, string $kind): void
+    {
+        $programs = Program::query()->where('organizer_id', $organizerId)->where('kind', $kind)->get();
+        $ids = $programs->pluck('id');
+        $titles = $programs->map(fn (Program $row) => $row->payload['title'] ?? null)->filter()->values();
+        $query->where(function ($inner) use ($ids, $titles) {
+            $inner->whereIn('program_id', $ids);
+            if ($titles->isNotEmpty()) {
+                $inner->orWhere(function ($legacy) use ($titles) {
+                    $legacy->whereNull('program_id')->whereIn('title', $titles);
+                });
+            }
+        });
     }
 
     private function notifyOrganizerForTarget(string $target, string $title, string $detail): void

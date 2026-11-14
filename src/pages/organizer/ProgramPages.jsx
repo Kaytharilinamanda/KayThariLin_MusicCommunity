@@ -1,12 +1,20 @@
+import { useEffect, useState } from "react"
 import ProgramDesk from "../../components/organizer/ProgramDesk"
-import { Td } from "../../components/ui/DataTable"
+import { DataTable, Td } from "../../components/ui/DataTable"
+import Button from "../../components/ui/Button"
+import { StatusBadge } from "../../components/admin/ResourceScreen"
+import { useAppState } from "../../context/AppState"
 import { instruments, workshopCategories } from "../../data/content"
+import { api } from "../../lib/api"
 import { longDate, money, timeRange } from "../../lib/format"
+import { useTitle } from "../../lib/useTitle"
 
 const levels = ["Beginner", "Intermediate", "All levels"]
 
 export function OrganizerWorkshops() {
   return (
+    <>
+    <WorkshopSignups first />
     <ProgramDesk
       kind="workshops"
       title="Workshops"
@@ -24,11 +32,17 @@ export function OrganizerWorkshops() {
         { name: "seats", label: "Seats", type: "number" },
       ]}
       columns={["Workshop", "When", "Where", "Fee"]}
+      withImage
       render={(row) => (
         <>
           <Td className="text-white">
-            <p className="font-medium">{row.title}</p>
-            <p className="text-xs text-zinc-500">{row.instructor} · {row.category}</p>
+            <div className="flex items-center gap-3">
+              <img src={row.image || "/images/studio.jpg"} alt="" className="h-14 w-20 rounded-lg object-cover" />
+              <div>
+                <p className="font-medium">{row.title}</p>
+                <p className="text-xs text-zinc-500">{row.instructor} · {row.category}</p>
+              </div>
+            </div>
           </Td>
           <Td>{longDate(row.date)} · {timeRange(row.startTime, row.endTime)}</Td>
           <Td>{row.location}, {row.city}</Td>
@@ -36,11 +50,14 @@ export function OrganizerWorkshops() {
         </>
       )}
     />
+    </>
   )
 }
 
 export function OrganizerCourses() {
   return (
+    <>
+    <CourseSignups first />
     <ProgramDesk
       kind="courses"
       title="Courses"
@@ -50,7 +67,7 @@ export function OrganizerCourses() {
         { name: "instrument", label: "Instrument", type: "select", options: instruments },
         { name: "level", label: "Level", type: "select", options: levels },
         { name: "instructor", label: "Instructor" },
-        { name: "center", label: "Music center" },
+        { name: "center", label: "Studio" },
         { name: "date", label: "Date", type: "date" },
         { name: "startTime", label: "Starting time", type: "time" },
         { name: "endTime", label: "Ending time", type: "time" },
@@ -59,11 +76,17 @@ export function OrganizerCourses() {
         { name: "price", label: "Price (USD)", type: "number" },
       ]}
       columns={["Course", "When", "Where", "Price"]}
+      withImage
       render={(row) => (
         <>
           <Td className="text-white">
-            <p className="font-medium">{row.title}</p>
-            <p className="text-xs text-zinc-500">{row.instrument} · {row.level}</p>
+            <div className="flex items-center gap-3">
+              <img src={row.image || "/images/piano.jpg"} alt="" className="h-14 w-20 rounded-lg object-cover" />
+              <div>
+                <p className="font-medium">{row.title}</p>
+                <p className="text-xs text-zinc-500">{row.instrument} · {row.level}</p>
+              </div>
+            </div>
           </Td>
           <Td>{longDate(row.date)} · {timeRange(row.startTime, row.endTime)}</Td>
           <Td>
@@ -74,6 +97,7 @@ export function OrganizerCourses() {
         </>
       )}
     />
+    </>
   )
 }
 
@@ -98,62 +122,104 @@ export function OrganizerCategories() {
   )
 }
 
-export function OrganizerCenters() {
+export function OrganizerEnrollments() {
+  useTitle("Enrollments")
   return (
-    <ProgramDesk
-      kind="centers"
-      title="Music centers"
-      text="Create, edit, and delete learning centers. Approved centers are listed with the public courses."
-      fields={[
-        { name: "name", label: "Name" },
-        { name: "city", label: "City" },
-        { name: "area", label: "Area" },
-        { name: "phone", label: "Phone" },
-        { name: "email", label: "Email", type: "email" },
-        { name: "hours", label: "Hours" },
-        { name: "focus", label: "Focus" },
-      ]}
-      columns={["Center", "City", "Contact", "Focus"]}
-      render={(row) => (
+    <>
+      <WorkshopSignups first />
+      <CourseSignups />
+    </>
+  )
+}
+
+function WorkshopSignups({ first = false }) {
+  return (
+    <Signups
+      first={first}
+      endpoint="/api/workshop-registrations"
+      listKey="registrations"
+      title="Workshop registrations"
+      text="Students who registered from your workshop pages. Confirm a seat so the student knows it is held."
+      confirmStatus="Confirmed"
+      columns={["Student", "Workshop", "Contact", "Experience", "Status", ""]}
+      empty="No workshop registrations yet."
+      render={(row, confirm) => (
         <>
-          <Td className="font-medium text-white">{row.name}</Td>
-          <Td>{row.city}{row.area ? <p className="text-xs text-zinc-500">{row.area}</p> : null}</Td>
-          <Td>
-            {row.email}
-            <p className="text-xs text-zinc-500">{row.phone}</p>
+          <Td className="text-white">
+            <p className="font-medium">{row.name}</p>
+            <p className="text-xs text-zinc-500">{row.email}</p>
           </Td>
-          <Td>{row.focus}</Td>
+          <Td>
+            {row.title}
+            <p className="text-xs text-zinc-500">{longDate(row.date)} · {row.city}</p>
+          </Td>
+          <Td>{row.phone}</Td>
+          <Td>{row.level}</Td>
+          <Td><StatusBadge status={row.status} /></Td>
+          <Td>{row.status === "Pending" ? <Button onClick={() => confirm(row)}>Confirm</Button> : null}</Td>
         </>
       )}
     />
   )
 }
 
-export function OrganizerEnrollments() {
+function CourseSignups({ first = false }) {
   return (
-    <ProgramDesk
-      kind="enrollments"
-      title="Enrollments"
-      text="Record students asking for a place in your courses. The admin approves or rejects each enrollment."
-      fields={[
-        { name: "student", label: "Student" },
-        { name: "email", label: "Email", type: "email" },
-        { name: "course", label: "Course" },
-        { name: "center", label: "Music center" },
-        { name: "date", label: "Date", type: "date" },
-      ]}
-      columns={["Student", "Course", "Studio", "Date"]}
-      render={(row) => (
+    <Signups
+      first={first}
+      endpoint="/api/enrollments"
+      listKey="enrollments"
+      title="Course enrollments"
+      text="Students who enrolled from your course pages. Confirm an enrollment so the student is enrolled. The admin desk does not see this list."
+      confirmStatus="Enrolled"
+      columns={["Student", "Course", "Contact", "Note", "Status", ""]}
+      empty="No course enrollments yet."
+      render={(row, confirm) => (
         <>
           <Td className="text-white">
-            <p className="font-medium">{row.student}</p>
+            <p className="font-medium">{row.name}</p>
             <p className="text-xs text-zinc-500">{row.email}</p>
           </Td>
-          <Td>{row.course}</Td>
-          <Td>{row.center}</Td>
-          <Td>{longDate(row.date)}</Td>
+          <Td>
+            {row.title}
+            <p className="text-xs text-zinc-500">{row.center} · {longDate(row.date)}</p>
+          </Td>
+          <Td>{row.phone}</Td>
+          <Td>{row.message}</Td>
+          <Td><StatusBadge status={row.status} /></Td>
+          <Td>{row.status === "Pending" ? <Button onClick={() => confirm(row)}>Confirm</Button> : null}</Td>
         </>
       )}
     />
+  )
+}
+
+function Signups({ endpoint, listKey, title, text, columns, empty, render, first = false, confirmStatus }) {
+  const { notify } = useAppState()
+  const [rows, setRows] = useState([])
+
+  useEffect(() => {
+    api(endpoint).then((data) => setRows(data[listKey] || [])).catch(() => setRows([]))
+  }, [endpoint, listKey])
+
+  async function confirm(row) {
+    try {
+      const data = await api(`${endpoint}/${row.id}`, { method: "PATCH", body: { status: confirmStatus } })
+      const next = data.registration || data.enrollment
+      setRows((current) => current.map((item) => (item.id === row.id ? { ...item, status: next.status } : item)))
+      notify(confirmStatus === "Enrolled" ? "Enrollment confirmed." : "Registration confirmed.")
+    } catch (error) {
+      notify(error.message)
+    }
+  }
+
+  return (
+    <section className={first ? "mb-10" : "mt-10"}>
+      <div className="mb-6">
+        <h2 className={first ? "font-display text-3xl text-white" : "font-display text-2xl text-white"}>{title}</h2>
+        <p className="mt-2 max-w-2xl text-sm text-zinc-400">{text}</p>
+      </div>
+      <DataTable columns={columns} rows={rows} empty={empty} render={(row) => render(row, confirm)} />
+    </section>
   )
 }

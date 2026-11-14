@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { ArrowUpRight, Building2, CalendarDays, ClipboardList, GraduationCap, Megaphone, MessageSquare, Star, Ticket, Users } from "lucide-react"
+import { ArrowUpRight, CalendarDays, ClipboardList, GraduationCap, Megaphone, MessageSquare, Star, Ticket, Users } from "lucide-react"
 import { Link } from "react-router-dom"
 import { AreaChart, DonutChart } from "../../components/admin/Charts"
 import { StatusBadge } from "../../components/admin/ResourceScreen"
@@ -15,7 +15,6 @@ const shortcuts = [
   { label: "Tickets", to: "/admin/tickets", icon: Ticket },
   { label: "Workshops", to: "/admin/workshops", icon: ClipboardList },
   { label: "Courses", to: "/admin/courses", icon: GraduationCap },
-  { label: "Centers", to: "/admin/centers", icon: Building2 },
   { label: "Posts", to: "/admin/posts", icon: MessageSquare },
   { label: "Announcements", to: "/admin/announcements", icon: Megaphone },
   { label: "Feedback", to: "/admin/feedback", icon: Star },
@@ -28,7 +27,6 @@ const emptyDash = {
   events: 0,
   pendingEvents: 0,
   workshops: 0,
-  enrollments: 0,
   accounts: 0,
   announcements: 0,
   revenueSeries: [],
@@ -67,8 +65,7 @@ export default function Dashboard() {
     { label: "Ticket sales", value: money(sales), note: `${seats} seats sold`, to: "/admin/reports" },
     { label: "Orders", value: String(dash.orders), note: "Platform-wide", to: "/admin/tickets" },
     { label: "Events", value: String(dash.events), note: `${dash.pendingEvents} waiting for approval`, to: "/admin/events" },
-    { label: "Workshops", value: String(dash.workshops), note: "Registrations open", to: "/admin/workshops" },
-    { label: "Enrollments", value: String(dash.enrollments), note: "Course requests", to: "/admin/enrollments" },
+    { label: "Workshops", value: String(dash.workshops), note: "Programs on the public list", to: "/admin/workshops" },
     { label: "Accounts", value: String(dash.accounts), note: `${published} announcements live`, to: "/admin/users" },
   ]
 

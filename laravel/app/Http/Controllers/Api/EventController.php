@@ -43,6 +43,7 @@ class EventController extends Controller
         $fields = $this->fields($request->all());
         $event = Event::create([
             ...$fields,
+            ...$this->poster($actor, null, $request->all()),
             'organizer_id' => $actor->id,
             'description' => $fields['blurb'],
             'approval_status' => 'pending',
@@ -60,6 +61,7 @@ class EventController extends Controller
         $fields = $this->fields($request->all());
         $event->fill([
             ...$fields,
+            ...$this->poster($actor, $event, $request->all()),
             'description' => $fields['blurb'],
             'approval_status' => 'pending',
             'rejection_reason' => '',
@@ -73,9 +75,26 @@ class EventController extends Controller
     {
         Records::requireOrganizer($request->user());
         $this->own($request->user(), $event);
+        $this->forgetUpload($event->image);
         $event->delete();
 
         return ['ok' => true];
+    }
+
+    public function uploadImage(Request $request)
+    {
+        $actor = $request->user();
+        Records::requireOrganizer($actor);
+        $request->validate([
+            'photo' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:2048'],
+        ], [
+            'photo.required' => 'Choose a poster to upload.',
+            'photo.image' => 'Use a JPG, PNG, WEBP, or GIF poster.',
+            'photo.mimes' => 'Use a JPG, PNG, WEBP, or GIF poster.',
+            'photo.max' => 'Choose a poster smaller than 2 MB.',
+        ]);
+
+        return ['image' => $this->storeUpload($request->file('photo'), $actor)];
     }
 
     public function review(Request $request, Event $event)
@@ -171,6 +190,7 @@ class EventController extends Controller
             'address' => $event->address,
             'city' => $event->city,
             'price' => (float) $event->price,
+            'image' => $event->image ?: '/images/crowd.jpg',
             'blurb' => $event->blurb,
             'status' => Records::label($event->approval_status),
             'rejectionReason' => $event->rejection_reason ?? '',
@@ -204,6 +224,99 @@ class EventController extends Controller
                 'note' => $ticket->note ?: 'General admission',
                 'left' => max(0, (int) $ticket->quantity - (int) $ticket->sold),
             ])->values(),
+        ];
+    }
+
+    private function poster(User $actor, ?Event $event, array $body): array
+    {
+        $submitted = trim((string) ($body['image'] ?? ''));
+        if ($event && ($submitted === '' || $submitted === (string) $event->image)) {
+            return [
+                'image' => $event->image,
+                'image_class' => $event->image_class ?? '',
+            ];
+        }
+        if ($submitted === '') {
+            return [
+                'image' => '/images/crowd.jpg',
+                'image_class' => '',
+            ];
+        }
+        $pattern = '#^/uploads/events/'.preg_quote((string) $actor->id, '#').'-[a-f0-9]{16}\.(jpg|png|webp|gif)$#';
+        if (! preg_match($pattern, $submitted) || ! $this->uploadExists($submitted)) {
+            Records::fail('Upload a JPG, PNG, WEBP, or GIF poster.');
+        }
+        if ($event) {
+            $this->forgetUpload($event->image);
+        }
+
+        return [
+            'image' => $submitted,
+            'image_class' => 'inset-0 h-full object-center',
+        ];
+    }
+
+    private function storeUpload($file, User $actor): string
+    {
+        $extension = strtolower((string) ($file->guessExtension() ?: 'jpg'));
+        if ($extension === 'jpeg') {
+            $extension = 'jpg';
+        }
+        if (! in_array($extension, ['jpg', 'png', 'webp', 'gif'], true)) {
+            Records::fail('Use a JPG, PNG, WEBP, or GIF poster.');
+        }
+        $name = $actor->id.'-'.bin2hex(random_bytes(8)).'.'.$extension;
+        $bytes = file_get_contents($file->getRealPath());
+        if ($bytes === false) {
+            Records::fail('That poster could not be read.');
+        }
+        foreach ($this->uploadDirectories() as $directory) {
+            if (! is_dir($directory) && ! mkdir($directory, 0755, true) && ! is_dir($directory)) {
+                Records::fail('The poster could not be saved.');
+            }
+            if (file_put_contents($directory.DIRECTORY_SEPARATOR.$name, $bytes) === false) {
+                Records::fail('The poster could not be saved.');
+            }
+        }
+
+        return '/uploads/events/'.$name;
+    }
+
+    private function uploadExists(string $url): bool
+    {
+        $name = basename($url);
+        foreach ($this->uploadDirectories() as $directory) {
+            if (is_file($directory.DIRECTORY_SEPARATOR.$name)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function forgetUpload(?string $url): void
+    {
+        if (! is_string($url) || ! preg_match('#^/uploads/events/[A-Za-z0-9._-]+$#', $url)) {
+            return;
+        }
+        $name = basename($url);
+        foreach ($this->uploadDirectories() as $directory) {
+            $file = $directory.DIRECTORY_SEPARATOR.$name;
+            if (is_file($file)) {
+                unlink($file);
+            }
+        }
+    }
+
+    private function uploadDirectories(): array
+    {
+        if (app()->runningUnitTests()) {
+            return [storage_path('framework/testing/uploads/events')];
+        }
+
+        return [
+            public_path('uploads/events'),
+            dirname(base_path()).DIRECTORY_SEPARATOR.'public'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR.'events',
         ];
     }
 }

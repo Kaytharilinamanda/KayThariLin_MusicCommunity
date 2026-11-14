@@ -4,7 +4,7 @@ export function AreaChart({ series }) {
   const height = 220
   const max = Math.max(...series.map((item) => item.value), 1)
   const points = series.map((item, index) => {
-    const x = (index / (series.length - 1)) * width
+    const x = series.length === 1 ? width / 2 : (index / (series.length - 1)) * width
     const y = height - (item.value / max) * (height - 28) - 8
     return [x, y]
   })
@@ -34,13 +34,50 @@ export function AreaChart({ series }) {
       <path d={area} fill="url(#revenue-fill)" />
       <path d={line} fill="none" stroke="#e11d48" strokeWidth="3" strokeLinejoin="round" />
       {points.map((point, index) => (
-        <circle key={series[index].label} className="chart-dot" cx={point[0]} cy={point[1]} r="4" fill="currentColor" stroke="#e11d48" strokeWidth="2" />
+        <circle key={`${series[index].label}-${index}`} className="chart-dot" cx={point[0]} cy={point[1]} r="4" fill="currentColor" stroke="#e11d48" strokeWidth="2" />
       ))}
     </svg>
   )
 }
 
-export function DonutChart({ slices }) {
+export function BarChart({ series, label = "Sales by show" }) {
+  if (!series?.length) return null
+  const width = 640
+  const height = 200
+  const max = Math.max(...series.map((item) => item.value), 1)
+  const slot = width / series.length
+  const barWidth = Math.min(56, slot * 0.55)
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="h-52 w-full" role="img" aria-label={label}>
+      {[0, 1, 2, 3].map((row) => (
+        <line
+          key={row}
+          x1="0"
+          x2={width}
+          y1={(height / 4) * row}
+          y2={(height / 4) * row}
+          className="chart-grid"
+          stroke="currentColor"
+          strokeOpacity="0.12"
+        />
+      ))}
+      {series.map((item, index) => {
+        const barHeight = item.value <= 0 ? 2 : Math.max((item.value / max) * (height - 24), 8)
+        const x = slot * index + (slot - barWidth) / 2
+        const y = height - barHeight
+        return (
+          <g key={`${item.label}-${index}`}>
+            <title>{`${item.label}: ${item.value}`}</title>
+            <rect x={x} y={y} width={barWidth} height={barHeight} rx="8" fill="#e11d48" opacity={item.value <= 0 ? 0.28 : 0.9} />
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
+
+export function DonutChart({ slices = [], label = "Ticket mix by genre", center = "mix" }) {
   const total = slices.reduce((sum, slice) => sum + slice.value, 0) || 1
   const radius = 54
   const circumference = 2 * Math.PI * radius
@@ -51,7 +88,7 @@ export function DonutChart({ slices }) {
   }, [])
 
   return (
-    <svg viewBox="0 0 160 160" className="h-40 w-40" role="img" aria-label="Ticket mix by genre">
+    <svg viewBox="0 0 160 160" className="h-40 w-40" role="img" aria-label={label}>
       <circle className="chart-grid" cx="80" cy="80" r={radius} fill="none" stroke="currentColor" strokeOpacity="0.12" strokeWidth="16" />
       {arcs.map((slice) => (
         <circle
@@ -71,7 +108,7 @@ export function DonutChart({ slices }) {
         {total}
       </text>
       <text x="80" y="94" textAnchor="middle" fill="#a1a1aa" fontSize="10">
-        mix
+        {center}
       </text>
     </svg>
   )

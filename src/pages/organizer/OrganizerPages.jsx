@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   BadgeDollarSign,
-  Building2,
   CalendarDays,
   ClipboardList,
   Drum,
@@ -18,6 +17,7 @@ import {
 import StudioShell from "../../components/layout/StudioShell"
 import Button from "../../components/ui/Button"
 import { DataTable, Stat, Td } from "../../components/ui/DataTable"
+import { AreaChart, BarChart, DonutChart } from "../../components/admin/Charts"
 import { StatusBadge } from "../../components/admin/ResourceScreen"
 import { SelectField, TextArea, TextField } from "../../components/ui/Field"
 import { useAppState } from "../../context/AppState"
@@ -41,7 +41,6 @@ const groups = [
     items: [
       { to: "/organizer/events", label: "Events", icon: CalendarDays },
       { to: "/organizer/announcements", label: "Announcements", icon: Megaphone },
-      { to: "/organizer/ads", label: "Advertisements", icon: Image },
       { to: "/organizer/tickets", label: "Tickets", icon: Ticket },
     ],
   },
@@ -51,7 +50,6 @@ const groups = [
       { to: "/organizer/workshops", label: "Workshops", icon: Drum },
       { to: "/organizer/courses", label: "Courses", icon: GraduationCap },
       { to: "/organizer/categories", label: "Course categories", icon: Tags },
-      { to: "/organizer/centers", label: "Music centers", icon: Building2 },
       { to: "/organizer/enrollments", label: "Enrollments", icon: ClipboardList },
     ],
   },
@@ -59,7 +57,7 @@ const groups = [
     label: "Box office",
     items: [
       { to: "/organizer/orders", label: "Orders", icon: BadgeDollarSign },
-      { to: "/organizer/enquiries", label: "Enquiries", icon: MessageSquare },
+      { to: "/organizer/enquiries", label: "Feedback", icon: MessageSquare },
     ],
   },
   {
@@ -108,7 +106,7 @@ export function OrganizerHome() {
   useTitle("Organizer")
   const [events, setEvents] = useState([])
   const [orders, setOrders] = useState([])
-  const sold = orders.filter((row) => row.status === "Paid").reduce((sum, row) => sum + row.total, 0)
+  const sold = orders.filter((row) => row.status === "Paid" || row.status === "Confirmed").reduce((sum, row) => sum + row.total, 0)
   const seats = orders.reduce((sum, row) => sum + row.qty, 0)
 
   useEffect(() => {
@@ -121,7 +119,7 @@ export function OrganizerHome() {
       <PageIntro title="Your shows" text="Ticket sales, bookings, and attendance for the events on this organizer account." />
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Events" value={events.length} detail={`${events.filter((row) => row.status === "Approved").length} approved`} />
-        <Stat label="Ticket sales" value={money(sold)} detail="Paid orders for your events" />
+        <Stat label="Ticket sales" value={money(sold)} detail="Confirmed orders for your events" />
         <Stat label="Seats booked" value={seats} detail="Across stored orders" />
       </div>
     </section>
@@ -175,6 +173,7 @@ const blankEvent = {
   date: "",
   time: "7:00 PM",
   price: "",
+  image: "",
   blurb: "",
 }
 
@@ -185,6 +184,8 @@ export function OrganizerEvents() {
   const [error, setError] = useState("")
   const [form, setForm] = useState(blankEvent)
   const [editing, setEditing] = useState("")
+  const [uploading, setUploading] = useState(false)
+  const posterInput = useRef(null)
 
   async function load() {
     try {
@@ -204,8 +205,39 @@ export function OrganizerEvents() {
     setForm((current) => ({ ...current, [key]: value }))
   }
 
+  async function choosePoster(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ""
+    if (!file) return
+    if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) {
+      notify("Use a JPG, PNG, WEBP, or GIF poster.")
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      notify("Choose a poster smaller than 2 MB.")
+      return
+    }
+    const body = new FormData()
+    body.append("photo", file)
+    setUploading(true)
+    try {
+      const data = await api("/api/events/image", { method: "POST", body })
+      update("image", data.image)
+      notify("Poster added to this event.")
+    } catch (err) {
+      notify(err.message)
+    } finally {
+      setUploading(false)
+    }
+  }
+
   async function save(event) {
     event.preventDefault()
+    if (uploading) return
+    if (!form.image) {
+      notify("Add a poster for this event.")
+      return
+    }
     try {
       if (editing) {
         await api(`/api/events/${editing}`, { method: "PATCH", body: form })
@@ -259,6 +291,32 @@ export function OrganizerEvents() {
         <TextField id="ev-time" label="Time" value={form.time} onChange={(event) => update("time", event.target.value)} />
         <TextField id="ev-price" label="From price (USD)" type="number" value={form.price} onChange={(event) => update("price", event.target.value)} />
         <div className="sm:col-span-2">
+          <span className="mb-2 block text-sm font-medium text-zinc-200">Poster</span>
+          <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-[#ead7da] bg-[#fffdfb] p-3">
+            {form.image ? (
+              <img src={form.image} alt="" className="h-28 w-20 rounded-xl object-cover" />
+            ) : (
+              <span className="grid h-28 w-20 place-items-center rounded-xl bg-[#fff1f2] text-[#9f1239]">
+                <Image className="h-5 w-5" aria-hidden="true" />
+              </span>
+            )}
+            <div>
+              <input
+                ref={posterInput}
+                id="ev-poster"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="hidden"
+                onChange={choosePoster}
+              />
+              <Button type="button" variant="secondary" disabled={uploading} onClick={() => posterInput.current?.click()}>
+                {uploading ? "Uploading…" : form.image ? "Change poster" : "Upload poster"}
+              </Button>
+              <p className="mt-2 text-xs text-zinc-500">JPG, PNG, WEBP, or GIF. Up to 2 MB. This is the image on the public event page.</p>
+            </div>
+          </div>
+        </div>
+        <div className="sm:col-span-2">
           <TextArea id="ev-blurb" label="Short description" rows={3} value={form.blurb} onChange={(event) => update("blurb", event.target.value)} />
         </div>
         {editing && (
@@ -280,8 +338,13 @@ export function OrganizerEvents() {
         render={(row) => (
           <>
             <Td className="text-white">
-              <p className="font-medium">{row.title}</p>
-              <p className="text-xs text-zinc-500">{row.artist}</p>
+              <div className="flex items-center gap-3">
+                <img src={row.image || "/images/crowd.jpg"} alt="" className="h-14 w-10 rounded-lg object-cover" />
+                <div>
+                  <p className="font-medium">{row.title}</p>
+                  <p className="text-xs text-zinc-500">{row.artist}</p>
+                </div>
+              </div>
             </Td>
             <Td>{row.date} · {row.time}</Td>
             <Td>{row.venue}, {row.city}</Td>
@@ -308,6 +371,7 @@ export function OrganizerEvents() {
                       date: row.date,
                       time: row.time,
                       price: String(row.price),
+                      image: row.image || "",
                       blurb: row.blurb || "",
                     })
                   }}
@@ -330,10 +394,9 @@ function noticePage({ title, text, noun }) {
     const { notify } = useAppState()
     const [rows, setRows] = useState([])
     const [form, setForm] = useState({ title: "", event: "One Night", extra: "" })
-    const kind = noun === "ad" ? "ad" : "announcement"
 
     useEffect(() => {
-      api(`/api/announcements/mine?kind=${kind}`).then((data) => setRows(data.announcements || [])).catch((error) => notify(error.message))
+      api("/api/announcements/mine?kind=announcement").then((data) => setRows(data.announcements || [])).catch((error) => notify(error.message))
     }, [notify])
 
     async function submit(event) {
@@ -346,11 +409,10 @@ function noticePage({ title, text, noun }) {
         const data = await api("/api/announcements", {
           method: "POST",
           body: {
-            kind,
+            kind: "announcement",
             title: form.title.trim(),
             event: form.event,
-            audience: noun === "ad" ? "Ticket holders" : form.extra || "Ticket holders",
-            placement: noun === "ad" ? form.extra || "Event page" : "",
+            audience: form.extra || "Ticket holders",
           },
         })
         setRows((current) => [data.announcement, ...current])
@@ -367,20 +429,20 @@ function noticePage({ title, text, noun }) {
         <form className="mb-6 grid gap-4 rounded-3xl border border-white/10 bg-panel p-5 sm:grid-cols-2" onSubmit={submit}>
           <TextField id={`${noun}-title`} label="Title" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} />
           <TextField id={`${noun}-event`} label="Event" value={form.event} onChange={(event) => setForm((current) => ({ ...current, event: event.target.value }))} />
-          <TextField id={`${noun}-extra`} label={noun === "ad" ? "Placement" : "Audience"} value={form.extra} onChange={(event) => setForm((current) => ({ ...current, extra: event.target.value }))} />
+          <TextField id={`${noun}-extra`} label="Audience" value={form.extra} onChange={(event) => setForm((current) => ({ ...current, extra: event.target.value }))} />
           <div className="sm:col-span-2">
             <Button type="submit">Publish</Button>
           </div>
         </form>
         <DataTable
-          columns={["Title", "Event", noun === "ad" ? "Placement" : "Audience", "Status"]}
+          columns={["Title", "Event", "Audience", "Status"]}
           rows={rows}
           empty={`No ${noun}s yet.`}
           render={(row) => (
             <>
               <Td className="font-medium text-white">{row.title}</Td>
               <Td>{row.event}</Td>
-              <Td>{noun === "ad" ? row.placement : row.audience}</Td>
+              <Td>{row.audience}</Td>
               <Td><StatusBadge status={row.status} /></Td>
             </>
           )}
@@ -396,12 +458,7 @@ export const OrganizerAnnouncements = noticePage({
   noun: "announcement",
 })
 
-export const OrganizerAds = noticePage({
-  title: "Advertisements",
-  text: "Promotional spots for your own events, stored with your organizer account.",
-  noun: "ad",
-})
-
+const ticketTypes = ["General admission", "VIP", "Front row", "Balcony", "Student"]
 const blankTicket = { eventId: "", tier: "", price: "", quantity: "", salesStart: "", salesEnd: "" }
 
 export function OrganizerTicketSetup() {
@@ -472,7 +529,7 @@ export function OrganizerTicketSetup() {
     <section>
       <PageIntro
         title="Tickets"
-        text="Create, edit, and delete ticket tiers for your own events. Saving submits the tier to the admin. You can read Pending, Approved, and Rejected here, then correct a rejection and resubmit."
+        text="Create, edit, and delete tickets for your own events. Choose a ticket type, then submit it for approval. You can read Pending, Approved, and Rejected here, then correct a rejection and resubmit."
       />
       {error && <p className="mb-4 text-sm text-rose-300">{error}</p>}
       {events.length === 0 ? (
@@ -484,7 +541,12 @@ export function OrganizerTicketSetup() {
               <option key={item.id} value={item.id}>{item.title}</option>
             ))}
           </SelectField>
-          <TextField id="tk-tier" label="Tier" value={form.tier} onChange={(event) => update("tier", event.target.value)} />
+          <SelectField id="tk-type" label="Ticket type" value={form.tier} onChange={(event) => update("tier", event.target.value)}>
+            <option value="">Choose a ticket type</option>
+            {(form.tier && !ticketTypes.includes(form.tier) ? [form.tier, ...ticketTypes] : ticketTypes).map((type) => (
+              <option key={type} value={type}>{type}</option>
+            ))}
+          </SelectField>
           <TextField id="tk-price" label="Price (USD)" type="number" value={form.price} onChange={(event) => update("price", event.target.value)} />
           <TextField id="tk-qty" label="Quantity" type="number" value={form.quantity} onChange={(event) => update("quantity", event.target.value)} />
           <TextField id="tk-start" label="Sales start" type="date" value={form.salesStart} onChange={(event) => update("salesStart", event.target.value)} />
@@ -500,9 +562,9 @@ export function OrganizerTicketSetup() {
         </form>
       )}
       <DataTable
-        columns={["Event", "Tier", "Price", "Quantity", "Window", "Status", ""]}
+        columns={["Event", "Ticket type", "Price", "Quantity", "Window", "Status", ""]}
         rows={rows}
-        empty="No ticket tiers yet."
+        empty="No tickets yet."
         render={(row) => (
           <>
             <Td className="text-white">{row.event}</Td>
@@ -546,16 +608,28 @@ export function OrganizerTicketSetup() {
 
 export function OrganizerOrders() {
   useTitle("Organizer orders")
+  const { notify } = useAppState()
   const [rows, setRows] = useState([])
 
   useEffect(() => {
     api("/api/orders").then((data) => setRows(data.orders || [])).catch(() => setRows([]))
   }, [])
+
+  async function confirm(row) {
+    try {
+      const data = await api(`/api/orders/${row.recordId}`, { method: "PATCH", body: { status: "Confirmed" } })
+      setRows((current) => current.map((item) => (item.recordId === row.recordId ? data.order : item)))
+      notify("Order confirmed.")
+    } catch (error) {
+      notify(error.message)
+    }
+  }
+
   return (
     <section>
-      <PageIntro title="Ticket orders" text="Bookings for your own events. Platform-wide orders stay on the admin desk." />
+      <PageIntro title="Ticket orders" text="Bookings for your own events. Confirm a reservation so the buyer knows the seats are held. Platform-wide orders stay on the admin desk." />
       <DataTable
-        columns={["Order", "Buyer", "Tickets", "Total", "Status"]}
+        columns={["Order", "Buyer", "Tickets", "Total", "Status", ""]}
         rows={rows}
         empty="No orders yet."
         render={(row) => (
@@ -571,6 +645,11 @@ export function OrganizerOrders() {
             <Td>{row.qty} × {row.tier}</Td>
             <Td>{money(row.total)}</Td>
             <Td><StatusBadge status={row.status} /></Td>
+            <Td>
+              {row.status === "Pending" || row.status === "Paid" ? (
+                <Button onClick={() => confirm(row)}>Confirm</Button>
+              ) : null}
+            </Td>
           </>
         )}
       />
@@ -579,26 +658,27 @@ export function OrganizerOrders() {
 }
 
 export function OrganizerEnquiries() {
-  useTitle("Enquiries")
+  useTitle("Feedback")
   const [rows, setRows] = useState([])
 
   useEffect(() => {
-    api("/api/enquiries").then((data) => setRows(data.enquiries || [])).catch(() => setRows([]))
+    api("/api/reviews").then((data) => setRows(data.reviews || [])).catch(() => setRows([]))
   }, [])
 
   return (
     <section>
-      <PageIntro title="Enquiries and feedback" text="Questions and feedback about your events. This list is view only." />
+      <PageIntro title="Feedback" text="Notes members leave about events, workshops, and courses. The admin desk sees the same list." />
       <DataTable
-        columns={["From", "Event", "Message", "Status"]}
+        columns={["From", "About", "Kind", "Rating", "Note"]}
         rows={rows}
-        empty="No enquiries."
+        empty="No feedback yet."
         render={(row) => (
           <>
-            <Td className="font-medium text-white">{row.from}</Td>
-            <Td>{row.event}</Td>
-            <Td>{row.message}</Td>
-            <Td><StatusBadge status={row.status} /></Td>
+            <Td className="font-medium text-white">{row.from || "Member"}</Td>
+            <Td>{row.target}</Td>
+            <Td>{row.kind}</Td>
+            <Td>{row.rating || "—"}</Td>
+            <Td>{row.text}</Td>
           </>
         )}
       />
@@ -606,12 +686,63 @@ export function OrganizerEnquiries() {
   )
 }
 
+const bookingColors = {
+  Confirmed: "#b42334",
+  Paid: "#e11d48",
+  Pending: "#f6c9cb",
+  "Refund requested": "#7a1220",
+  Cancelled: "#a8a29e",
+}
+
+function salesByShow(events, orders) {
+  const titles = []
+  events.forEach((event) => {
+    if (event.title && !titles.includes(event.title)) titles.push(event.title)
+  })
+  orders.forEach((order) => {
+    if (order.event && !titles.includes(order.event)) titles.push(order.event)
+  })
+  return titles.map((title) => ({
+    label: title,
+    value: orders
+      .filter((order) => order.event === title && (order.status === "Paid" || order.status === "Confirmed"))
+      .reduce((sum, order) => sum + Number(order.total || 0), 0),
+  }))
+}
+
+function revenueByMonth(orders) {
+  const now = new Date()
+  return Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1)
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
+    return {
+      label: date.toLocaleString("en", { month: "short" }),
+      value: orders
+        .filter((order) => (order.status === "Paid" || order.status === "Confirmed") && String(order.date || "").startsWith(key))
+        .reduce((sum, order) => sum + Number(order.total || 0), 0),
+    }
+  })
+}
+
+function bookingStatus(orders) {
+  const counts = new Map()
+  orders.forEach((order) => counts.set(order.status, (counts.get(order.status) || 0) + 1))
+  return [...counts.entries()].map(([label, value]) => ({
+    label,
+    value,
+    color: bookingColors[label] || "#e7a4a8",
+  }))
+}
+
 export function OrganizerReports() {
   useTitle("Organizer reports")
   const [events, setEvents] = useState([])
   const [orders, setOrders] = useState([])
-  const paid = orders.filter((row) => row.status === "Paid")
+  const paid = orders.filter((row) => row.status === "Paid" || row.status === "Confirmed")
   const sales = paid.reduce((sum, row) => sum + row.total, 0)
+  const showSales = salesByShow(events, orders)
+  const revenue = revenueByMonth(orders)
+  const statuses = bookingStatus(orders)
 
   useEffect(() => {
     api("/api/events").then((data) => setEvents(data.events || [])).catch(() => setEvents([]))
@@ -620,12 +751,62 @@ export function OrganizerReports() {
 
   return (
     <section>
-      <PageIntro title="Reports" text="Ticket sales and bookings for your events, with the approval status of each show." />
+      <PageIntro title="Reports" text="Ticket sales and bookings for your events, with charts for revenue, sales by show, and booking status." />
       <div className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Sales" value={money(sales)} detail={`${paid.length} paid orders`} />
+        <Stat label="Sales" value={money(sales)} detail={`${paid.length} confirmed orders`} />
         <Stat label="Bookings" value={orders.length} detail="Including pending holds" />
         <Stat label="Approved events" value={events.filter((row) => row.status === "Approved").length} detail={`${events.length} submitted`} />
       </div>
+      <div className="mt-6 grid gap-4 xl:grid-cols-[1.4fr_0.8fr]">
+        <article className="rounded-3xl border border-[#f3d6da] bg-raised p-5 shadow-sm">
+          <h2 className="font-display text-xl text-white">Ticket revenue</h2>
+          <p className="text-sm text-zinc-500">Confirmed and paid orders over the last six months</p>
+          <AreaChart series={revenue} />
+          <div className="mt-2 grid grid-cols-6 text-center text-xs text-zinc-500">
+            {revenue.map((item) => (
+              <span key={item.label}>{item.label}</span>
+            ))}
+          </div>
+        </article>
+        <article className="rounded-3xl border border-[#f3d6da] bg-raised p-5 shadow-sm">
+          <h2 className="font-display text-xl text-white">Booking status</h2>
+          {statuses.length === 0 ? (
+            <p className="mt-6 text-sm text-zinc-400">No bookings yet.</p>
+          ) : (
+            <div className="mt-4 flex items-center gap-4">
+              <DonutChart slices={statuses} label="Bookings by status" center="orders" />
+              <ul className="space-y-2 text-sm">
+                {statuses.map((slice) => (
+                  <li key={slice.label} className="flex items-center gap-2 text-zinc-300">
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: slice.color }} />
+                    {slice.label}
+                    <span className="text-zinc-500">{slice.value}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </article>
+      </div>
+      <article className="mt-4 rounded-3xl border border-[#f3d6da] bg-raised p-5 shadow-sm">
+        <h2 className="font-display text-xl text-white">Sales by show</h2>
+        <p className="text-sm text-zinc-500">Confirmed and paid totals for each event</p>
+        {showSales.length === 0 ? (
+          <p className="mt-6 text-sm text-zinc-400">No events to chart yet.</p>
+        ) : (
+          <>
+            <BarChart series={showSales} />
+            <div className="mt-2 grid text-center text-xs text-zinc-500" style={{ gridTemplateColumns: `repeat(${showSales.length}, minmax(0, 1fr))` }}>
+              {showSales.map((item) => (
+                <span key={item.label} className="truncate px-1" title={`${item.label} ${money(item.value)}`}>
+                  {item.label}
+                  <span className="mt-0.5 block text-zinc-400">{money(item.value)}</span>
+                </span>
+              ))}
+            </div>
+          </>
+        )}
+      </article>
       <div className="mt-6">
         <DataTable
           columns={["Event", "Status", "From price", "When"]}

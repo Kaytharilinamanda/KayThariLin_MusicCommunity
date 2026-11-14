@@ -5,7 +5,6 @@ import Button from "../components/ui/Button"
 import Container from "../components/ui/Container"
 import Cover from "../components/ui/Cover"
 import { SelectField, TextArea, TextField } from "../components/ui/Field"
-import { schoolById } from "../data/content"
 import { api } from "../lib/api"
 import { cachedRows, loadPublishedCourses, sameCatalog } from "../lib/catalog"
 import { useAppState } from "../context/AppState"
@@ -19,19 +18,6 @@ export default function CourseDetail() {
   const [courses, setCourses] = useState(() => cachedRows("courses") || [])
   const [ready, setReady] = useState(() => (cachedRows("courses") || []).some((item) => item.id === id))
   const course = courses.find((item) => item.id === id)
-  const school = course
-    ? course.school || schoolById(course.centerId) || {
-        name: course.center || "Studio",
-        city: "",
-        area: "",
-        address: course.location || "",
-        phone: "",
-        email: "",
-        hours: "",
-        image: course.image || "/images/piano-hall.jpg",
-        focus: course.instrument || "",
-      }
-    : null
   useTitle(course?.title || "Course")
 
   useEffect(() => {
@@ -61,7 +47,7 @@ export default function CourseDetail() {
     )
   }
 
-  if (!course || !school) {
+  if (!course) {
     return (
       <Container className="py-32 text-center">
         <h1 className="font-display text-4xl text-white">That course is not listed.</h1>
@@ -101,7 +87,7 @@ export default function CourseDetail() {
       return
     }
     setDone(true)
-    notify("Enrollment request saved under your account.")
+    notify("Enrollment sent. The organizer will confirm it.")
   }
 
   return (
@@ -118,7 +104,7 @@ export default function CourseDetail() {
           </p>
           <h1 className="mt-3 font-display text-4xl text-white sm:text-6xl">{course.title}</h1>
           <p className="mt-3 text-zinc-200">
-            {course.instructor} · {school.name}
+            {course.instructor}{course.center ? ` · ${course.center}` : ""}
           </p>
         </Container>
       </section>
@@ -135,7 +121,7 @@ export default function CourseDetail() {
             <div className="rounded-2xl border border-white/10 bg-panel p-4 text-sm text-zinc-200">
               <MapPin className="mb-2 h-4 w-4 text-violet-300" />
               {course.location}
-              <p className="mt-1 text-xs text-zinc-500">{school.name} · {school.city}</p>
+              {course.center ? <p className="mt-1 text-xs text-zinc-500">{course.center}</p> : null}
             </div>
             <div className="rounded-2xl border border-white/10 bg-panel p-4">
               <p className="text-xs text-zinc-500">Tuition</p>
@@ -157,17 +143,6 @@ export default function CourseDetail() {
               <li key={item}>{item}</li>
             ))}
           </ul>
-          <div className="mt-8 overflow-hidden rounded-3xl border border-white/10 bg-panel">
-            <Cover src={school.image} alt="" className="h-44 w-full" />
-            <div className="p-5">
-              <p className="text-xs uppercase tracking-[0.16em] text-violet-300">Learning center</p>
-              <h3 className="mt-1 font-display text-2xl text-white">{school.name}</h3>
-              <p className="mt-2 text-sm text-zinc-400">{school.address}</p>
-              <p className="mt-2 text-sm text-zinc-300">{school.phone}</p>
-              <p className="text-sm text-zinc-300">{school.email}</p>
-              <p className="mt-2 text-xs text-zinc-500">{school.hours}</p>
-            </div>
-          </div>
         </div>
         <aside className="h-fit rounded-3xl border border-white/10 bg-panel p-5 shadow-lift lg:sticky lg:top-24">
           <div className="flex items-center gap-3">
@@ -179,14 +154,14 @@ export default function CourseDetail() {
           </div>
           {done ? (
             <p className="mt-6 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">
-              Enrollment request noted for {course.title}. It is listed under your account, and the note reaches the learning center on this page.
+              Your enrollment in {course.title} is waiting for the organizer. It is listed under your account.
             </p>
           ) : user?.role !== "user" ? (
             <div className="mt-5">
               <SignInPrompt
                 signedIn={Boolean(user)}
                 title="Sign in to enroll or enquire"
-                text="Fees, schedules, and the learning center stay visible. Enrollment and messages use a user account."
+                text="Fees and schedules stay visible. Enrollment uses a user account."
               />
             </div>
           ) : (
@@ -199,9 +174,9 @@ export default function CourseDetail() {
                 <option>Next intake</option>
                 <option>The intake after</option>
               </SelectField>
-              <TextArea id="en-message" label="Note to the studio" value={form.message} onChange={(event) => update("message", event.target.value)} />
+              <TextArea id="en-message" label="Note to the organizer" value={form.message} onChange={(event) => update("message", event.target.value)} />
               <Button type="submit" className="w-full">
-                Request enrollment
+                Enroll
               </Button>
             </form>
           )}

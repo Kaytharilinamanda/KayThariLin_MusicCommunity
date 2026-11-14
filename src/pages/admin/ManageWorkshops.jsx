@@ -38,6 +38,7 @@ export default function ManageWorkshops() {
         ["Ending time", timeRange(row.endTime)],
         ["Location", `${row.location}, ${row.city}`],
         ["Fee", money(row.fee)],
+        ["Photo", row.image ? <img src={row.image} alt="" className="h-28 w-40 rounded-xl object-cover" /> : ""],
         ["Seats", String(row.seats ?? "")],
         ["Status", row.status],
         ["Rejection reason", row.rejectionReason],

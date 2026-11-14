@@ -1,15 +1,14 @@
 import { useEffect, useState } from "react"
-import { ArrowRight, AudioLines, Disc3, Drum, GraduationCap, Guitar, Headphones, MicVocal, Music2, Music4, Piano, Radio, School } from "lucide-react"
+import { ArrowRight, AudioLines, Disc3, Drum, GraduationCap, Guitar, Headphones, MicVocal, Music2, Music4, Piano, Radio } from "lucide-react"
 import { Link } from "react-router-dom"
 import CourseCard from "../components/cards/CourseCard"
 import WorkshopCard from "../components/cards/WorkshopCard"
-import SchoolCard from "../components/cards/SchoolCard"
 import Button from "../components/ui/Button"
 import Container from "../components/ui/Container"
 import Cover from "../components/ui/Cover"
 import EventPoster from "../components/ui/EventPoster"
 import SectionHeading from "../components/ui/SectionHeading"
-import { posts, schools } from "../data/content"
+import { posts } from "../data/content"
 import { cachedRows, loadPublishedCourses, loadPublishedEvents, loadPublishedWorkshops, sameCatalog } from "../lib/catalog"
 import { useAppState } from "../context/AppState"
 import { homeFor, roleLabel } from "../lib/account"
@@ -62,7 +61,6 @@ export default function Home() {
     ["courses", "Courses"],
     ["workshops", "Workshops"],
     ["community", "Community"],
-    ["schools", "Schools"],
   ]
 
   useEffect(() => {
@@ -229,12 +227,11 @@ export default function Home() {
 
       <section className="relative z-10">
         <Container>
-          <div className="grid grid-cols-2 overflow-hidden rounded-2xl border border-[#f3d6da] bg-raised shadow-sm md:grid-cols-4">
+          <div className="grid grid-cols-3 overflow-hidden rounded-2xl border border-[#f3d6da] bg-raised shadow-sm">
             {[
               [events.length, "Concerts", "/events", Music2],
               [workshopList.length, "Workshops", "/workshops", Drum],
               [courseList.length, "Courses", "/courses", GraduationCap],
-              [schools.length, "Studios", "/courses", School],
             ].map(([value, label, to, Icon]) => (
               <Link key={label} to={to} className="group border-[#f3d6da] px-4 py-3 transition duration-200 hover:bg-[#fff5f6] md:border-l md:first:border-l-0">
                 <Icon className="h-3.5 w-3.5 text-[#e11d48] transition duration-200 group-hover:scale-110" />
@@ -333,22 +330,6 @@ export default function Home() {
         </Container>
       </section>
 
-      <section id="schools" className="scroll-mt-24 pb-10">
-        <Container>
-          <SectionHeading
-            compact
-            eyebrow="Where to study"
-            title="Featured music schools"
-            description="Learning rooms with a phone number, a door, and someone who answers it."
-          />
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {schools.map((school) => (
-              <SchoolCard key={school.id} school={school} />
-            ))}
-          </div>
-        </Container>
-      </section>
-
       <section className="pb-20">
         <Container>
           <div className="grid overflow-hidden rounded-[2rem] border border-[#f3d6da] bg-raised shadow-lift lg:grid-cols-2">
@@ -364,7 +345,7 @@ export default function Home() {
               <p className="mt-3 text-sm leading-6 text-zinc-400">
                 {user
                   ? "Events, workshops, courses, and the community stay public. Orders, posts, and enrollments stay on a user account."
-                  : "Guests can view events, workshops, courses, announcements, and posts. Tickets, workshop seats, course enrollment, posts, and school messages need a user login."}
+                  : "Guests can view events, workshops, courses, announcements, and posts. Tickets, workshop seats, course enrollment, and posts need a user login."}
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 {user ? (
