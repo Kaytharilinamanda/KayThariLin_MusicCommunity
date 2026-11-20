@@ -76,6 +76,18 @@ class AnnouncementController extends Controller
         return response()->json(['announcement' => $this->row($row)], 201);
     }
 
+    public function update(Request $request, Announcement $announcement)
+    {
+        Records::requireAdmin($request->user());
+        $status = $request->input('status');
+        if (! in_array($status, ['Published', 'Draft', 'Scheduled'], true)) {
+            Records::fail('Choose Published, Draft, or Scheduled.');
+        }
+        $announcement->update(['status' => $status]);
+
+        return ['announcement' => $this->row($announcement)];
+    }
+
     public function destroy(Request $request, Announcement $announcement)
     {
         Records::requireAdmin($request->user());

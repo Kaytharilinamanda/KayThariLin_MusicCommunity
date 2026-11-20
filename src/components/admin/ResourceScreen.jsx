@@ -38,6 +38,7 @@ export default function ResourceScreen({
   listKey = "items",
   readOnly = false,
   canDelete = false,
+  canEditStatus = false,
 }) {
   const { notify } = useAppState()
   const [rows, setRows] = useState(seed || [])
@@ -79,20 +80,29 @@ export default function ResourceScreen({
     setEditing({ mode: "edit", id: row.id })
   }
 
+  function openStatus(row) {
+    setForm({ status: row.status ?? "" })
+    setErrors({})
+    setEditing({ mode: "edit", id: row.id, statusOnly: true })
+  }
+
   function save(event) {
     event.preventDefault()
+    const activeFields = editing?.statusOnly ? fields.filter((field) => field.name === "status") : fields
     const nextErrors = {}
-    fields.forEach((field) => {
+    activeFields.forEach((field) => {
       if (field.optional) return
       if (String(form[field.name] ?? "").trim() === "") nextErrors[field.name] = "Required"
     })
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length) return
 
-    const payload = { ...form }
-    fields.forEach((field) => {
-      if (field.type === "number") payload[field.name] = Number(form[field.name]) || 0
-    })
+    const payload = editing?.statusOnly ? { status: form.status } : { ...form }
+    if (!editing?.statusOnly) {
+      fields.forEach((field) => {
+        if (field.type === "number") payload[field.name] = Number(form[field.name]) || 0
+      })
+    }
 
     if (!endpoint) {
       if (editing.mode === "create") {
@@ -202,6 +212,11 @@ export default function ResourceScreen({
                       <Button variant="secondary" className="px-3 py-1.5 text-xs" onClick={() => setViewing(row)}>
                         View
                       </Button>
+                      {canEditStatus && (
+                        <Button variant="secondary" className="px-3 py-1.5 text-xs" onClick={() => openStatus(row)}>
+                          Edit
+                        </Button>
+                      )}
                       <Button variant="danger" className="px-3 py-1.5 text-xs" onClick={() => setRemoving(row)}>
                         Remove
                       </Button>
@@ -231,12 +246,12 @@ export default function ResourceScreen({
 
       <Modal
         open={Boolean(editing)}
-        title={editing?.mode === "edit" ? `Edit ${title.slice(0, -1) || "item"}` : createLabel}
+        title={editing?.statusOnly ? "Edit status" : editing?.mode === "edit" ? `Edit ${title.slice(0, -1) || "item"}` : createLabel}
         subtitle={endpoint ? "This is stored in the database." : "This stays on this page."}
         onClose={() => setEditing(null)}
       >
         <form className="grid gap-4" onSubmit={save}>
-          {fields.map((field) => {
+          {(editing?.statusOnly ? fields.filter((field) => field.name === "status") : fields).map((field) => {
             const shared = {
               id: field.name,
               label: field.label,

@@ -7,12 +7,13 @@ export default function ManageAnnouncements() {
   return (
     <ResourceScreen
       title="Announcements"
-      description="Notes published by organizers. Open one to read it, or remove it. Organizers still publish them."
+      description="Notes published by organizers. Open one to read it, change its status, or remove it."
       createLabel="Add announcement"
       endpoint="/api/announcements/manage"
       listKey="announcements"
       readOnly
       canDelete
+      canEditStatus
       seed={[]}
       searchKeys={["title", "audience", "channel"]}
       filters={[{ key: "status", label: "Statuses", options: ["Published", "Draft", "Scheduled"] }]}

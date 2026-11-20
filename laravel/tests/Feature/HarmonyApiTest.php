@@ -286,6 +286,18 @@ class HarmonyApiTest extends TestCase
         $managed = collect($this->withToken($admin['token'])->getJson('/api/announcements/manage')->assertOk()->json('announcements'));
         $this->assertTrue($managed->contains(fn ($row) => $row['title'] === 'Room note' && $row['body'] === 'Bring a pencil.'));
         auth()->forgetGuards();
+        $this->withToken($organizer['token'])->patchJson('/api/announcements/manage/'.$created['id'], [
+            'status' => 'Draft',
+        ])->assertStatus(403);
+        auth()->forgetGuards();
+        $updated = $this->withToken($admin['token'])->patchJson('/api/announcements/manage/'.$created['id'], [
+            'status' => 'Draft',
+        ])->assertOk()->json('announcement');
+        $this->assertSame('Draft', $updated['status']);
+        $this->withToken($admin['token'])->patchJson('/api/announcements/manage/'.$created['id'], [
+            'status' => 'Hidden',
+        ])->assertStatus(400);
+        auth()->forgetGuards();
         $this->withToken($organizer['token'])->deleteJson('/api/announcements/manage/'.$created['id'])->assertStatus(403);
         auth()->forgetGuards();
         $this->withToken($admin['token'])->deleteJson('/api/announcements/manage/'.$created['id'])->assertOk();

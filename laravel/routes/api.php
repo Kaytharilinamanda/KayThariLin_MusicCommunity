@@ -89,6 +89,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/members/{member}/follow', [CommunityController::class, 'follow']);
 
     Route::get('/announcements/manage', [AnnouncementController::class, 'manage']);
+    Route::patch('/announcements/manage/{announcement}', [AnnouncementController::class, 'update']);
     Route::delete('/announcements/manage/{announcement}', [AnnouncementController::class, 'destroy']);
     Route::get('/announcements/mine', [AnnouncementController::class, 'mine']);
     Route::post('/announcements', [AnnouncementController::class, 'store']);
