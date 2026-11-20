@@ -51,7 +51,7 @@ export default function Courses() {
         eyebrow="Learn"
         title="Music courses"
         subtitle="Lessons and longer tracks. Filter by instrument, studio, and price."
-        image="/images/piano-hall.jpg"
+        image="/images/piano.jpg"
       />
       <Container className="pt-6 pb-10">
         <div className="space-y-4 rounded-3xl border border-[#f3d6da] bg-raised p-5 shadow-sm">

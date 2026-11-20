@@ -334,7 +334,7 @@ export default function Home() {
         <Container>
           <div className="grid overflow-hidden rounded-[2rem] border border-[#f3d6da] bg-raised shadow-lift lg:grid-cols-2">
             <div className="relative min-h-64">
-              <Cover src="/images/audience.jpg" alt="Audience at a concert" className="absolute inset-0 h-full w-full" />
+              <Cover src="/images/studio.jpg" alt="Studio with guitars and a mixing desk" className="absolute inset-0 h-full w-full" />
               <div className="absolute inset-0 bg-violet-950/25" />
             </div>
             <div className="p-8 sm:p-12">
