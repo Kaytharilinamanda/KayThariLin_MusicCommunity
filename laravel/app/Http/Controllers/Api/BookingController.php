@@ -525,7 +525,7 @@ class BookingController extends Controller
 
     private function limitToOrganizer($query, int $organizerId, string $kind): void
     {
-        $programs = Program::query()->where('organizer_id', $organizerId)->where('kind', $kind)->get();
+        $programs = Program::query()->where('organizer_id', $organizerId)->where('kind', $kind)->get(['id', 'payload']);
         $ids = $programs->pluck('id');
         $titles = $programs->map(fn (Program $row) => $row->payload['title'] ?? null)->filter()->values();
         $query->where(function ($inner) use ($ids, $titles) {
@@ -546,9 +546,7 @@ class BookingController extends Controller
 
             return;
         }
-        $program = Program::query()->get()->first(function (Program $row) use ($target) {
-            return ($row->payload['title'] ?? $row->payload['name'] ?? '') === $target;
-        });
+        $program = Program::query()->where('payload->title', $target)->orWhere('payload->name', $target)->first();
         if ($program) {
             Records::notify($program->organizer_id, $title, $detail);
         }

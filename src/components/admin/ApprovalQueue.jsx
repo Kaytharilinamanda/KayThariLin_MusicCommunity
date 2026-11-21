@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { Search } from "lucide-react"
 import Button from "../ui/Button"
 import Modal from "../ui/Modal"
 import { TextArea } from "../ui/Field"
 import { DataTable, Td } from "../ui/DataTable"
 import { api } from "../../lib/api"
+import { useDeskRows } from "../../lib/deskCache"
 import { useAppState } from "../../context/AppState"
 import { StatusBadge } from "./ResourceScreen"
 
@@ -19,7 +20,7 @@ export default function ApprovalQueue({
   detail,
 }) {
   const { notify } = useAppState()
-  const [rows, setRows] = useState([])
+  const { rows, ready, reload } = useDeskRows(reviewBase, listKey)
   const [error, setError] = useState("")
   const [query, setQuery] = useState("")
   const [viewing, setViewing] = useState(null)
@@ -28,17 +29,12 @@ export default function ApprovalQueue({
 
   async function load() {
     try {
-      const data = await api(reviewBase)
-      setRows(data[listKey] || [])
+      await reload()
       setError("")
     } catch (err) {
       setError(err.message)
     }
   }
-
-  useEffect(() => {
-    load()
-  }, [reviewBase, listKey])
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
@@ -80,7 +76,7 @@ export default function ApprovalQueue({
         <DataTable
           columns={columns}
           rows={filtered}
-          empty="Nothing is waiting in this queue."
+          empty={ready ? "Nothing is waiting in this queue." : ""}
           render={(row) => (
             <>
               {renderCells(row)}

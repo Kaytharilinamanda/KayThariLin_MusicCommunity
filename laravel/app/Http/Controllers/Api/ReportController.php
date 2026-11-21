@@ -5,14 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\Notification;
-use App\Models\Program;
 use App\Models\Ticket;
-use App\Models\TicketOrder;
 use App\Models\User;
-use App\Models\WorkshopRegistration;
+use App\Support\Desk;
 use App\Support\Records;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 
 class ReportController extends Controller
 {
@@ -57,57 +54,13 @@ class ReportController extends Controller
 
     public function dashboard(Request $request)
     {
-        Records::requireAdmin($request->user());
-        $orders = TicketOrder::query()->get();
-        $paid = $orders->whereIn('status', ['Paid', 'Confirmed']);
-        $events = Event::query()->get();
-        $colors = ['Pop' => '#f6c9cb', 'Hip-Hop' => '#b42334', 'R&B' => '#7a1220', 'Rock' => '#e7a4a8'];
-        $genre = $events->where('approval_status', 'approved')->groupBy('category')->map(function ($group, $label) use ($colors) {
-            return ['label' => $label, 'value' => $group->count(), 'color' => $colors[$label] ?? '#e7a4a8'];
-        })->values();
-        $series = collect(range(5, 0))->map(function ($ago) {
-            $month = now()->subMonths($ago);
-            $total = TicketOrder::query()
-                ->whereIn('status', ['Paid', 'Confirmed'])
-                ->whereBetween('created_at', [$month->copy()->startOfMonth(), $month->copy()->endOfMonth()])
-                ->sum('total');
+        $user = $request->user();
+        if ($user->role === 'organizer') {
+            return ['dashboard' => Desk::organizer($user)];
+        }
+        Records::requireAdmin($user);
 
-            return ['label' => $month->format('M'), 'value' => (int) round($total)];
-        })->values();
-        $pending = Event::query()->with('organizer')->where('approval_status', 'pending')->latest()->limit(5)->get();
-
-        return ['dashboard' => [
-            'sales' => (float) $paid->sum('total'),
-            'seats' => (int) $paid->sum('qty'),
-            'orders' => $orders->count(),
-            'events' => $events->count(),
-            'pendingEvents' => $events->where('approval_status', 'pending')->count(),
-            'workshops' => Program::query()->where('kind', 'workshop')->count(),
-            'registrations' => WorkshopRegistration::query()->count(),
-            'accounts' => User::query()->count(),
-            'announcements' => \App\Models\Announcement::query()->where('status', 'Published')->count(),
-            'revenueSeries' => $series,
-            'genreSplit' => $genre,
-            'waiting' => $pending->map(fn (Event $event) => [
-                'id' => $event->id,
-                'title' => $event->title,
-                'detail' => ($event->organizer?->organization ?: $event->organizer?->name).' · waiting for approval',
-                'to' => '/admin/events',
-                'status' => 'Pending',
-            ])->values(),
-            'ordersList' => TicketOrder::query()->latest()->limit(5)->get()->map(fn (TicketOrder $order) => [
-                'id' => $order->code,
-                'buyer' => $order->buyer_name,
-                'event' => $order->event_title,
-                'total' => (float) $order->total,
-                'status' => $order->status,
-            ])->values(),
-            'activity' => Notification::query()->where('user_id', $request->user()->id)->latest()->limit(6)->get()->map(fn (Notification $note) => [
-                'id' => $note->id,
-                'text' => $note->title.($note->detail ? ' · '.$note->detail : ''),
-                'time' => Records::ago($note->created_at),
-            ])->values(),
-        ]];
+        return ['dashboard' => Desk::admin($user)];
     }
 
     public function notifications(Request $request)

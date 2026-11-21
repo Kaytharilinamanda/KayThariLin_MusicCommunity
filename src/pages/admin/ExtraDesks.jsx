@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { api } from "../../lib/api"
+import { fetchDesk, readDesk } from "../../lib/deskCache"
 import ResourceScreen, { Cell, StatusBadge } from "../../components/admin/ResourceScreen"
 import ApprovalQueue, { ApprovalStatus } from "../../components/admin/ApprovalQueue"
 import { Td } from "../../components/ui/DataTable"
@@ -83,10 +84,10 @@ export function ManageReports() {
   const { notify } = useAppState()
   const [report, setReport] = useState(null)
   const [busy, setBusy] = useState(false)
-  const [dash, setDash] = useState({ sales: 0, seats: 0, registrations: 0, revenueSeries: [], activity: [] })
+  const [dash, setDash] = useState(() => readDesk("/api/dashboard")?.dashboard || { sales: 0, seats: 0, registrations: 0, revenueSeries: [], activity: [] })
 
   useEffect(() => {
-    api("/api/dashboard").then((data) => setDash(data.dashboard || {})).catch(() => {})
+    fetchDesk("/api/dashboard").then((data) => setDash(data.dashboard || {})).catch(() => {})
   }, [])
 
   const sales = dash.sales || 0

@@ -698,6 +698,49 @@ class HarmonyApiTest extends TestCase
         $this->assertFileDoesNotExist(storage_path('framework/testing/uploads/programs/'.basename($courseImage)));
     }
 
+    public function test_dashboards_return_counted_totals(): void
+    {
+        $organizer = $this->postJson('/api/login', [
+            'email' => 'organizer@harmony.community',
+            'password' => 'Organizer123',
+            'role' => 'organizer',
+        ])->assertOk()->json();
+        $this->assertSame('organizer', $organizer['desk']['role']);
+
+        $fromSession = $this->withToken($organizer['token'])->getJson('/api/me?desk=1')->assertOk()->json('desk');
+        $fromDesk = $this->withToken($organizer['token'])->getJson('/api/dashboard')->assertOk()->json('dashboard');
+        $this->assertSame($fromSession['events'], $fromDesk['events']);
+        $this->assertSame($fromSession['approved'], $fromDesk['approved']);
+        $this->assertEquals($fromSession['sales'], $fromDesk['sales']);
+        $this->assertSame($fromSession['seats'], $fromDesk['seats']);
+        $this->assertArrayNotHasKey('revenueSeries', $fromDesk);
+
+        auth()->forgetGuards();
+        $admin = $this->postJson('/api/login', [
+            'email' => 'admin@harmony.community',
+            'password' => 'HarmonyAdmin1',
+            'role' => 'admin',
+        ])->assertOk()->json();
+        $this->assertSame('admin', $admin['desk']['role']);
+        auth()->forgetGuards();
+        $dashboard = $this->withToken($admin['token'])->getJson('/api/dashboard')->assertOk()->json('dashboard');
+        $this->assertSame('admin', $dashboard['role']);
+        $this->assertCount(6, $dashboard['revenueSeries']);
+        $this->assertSame($admin['desk']['orders'], $dashboard['orders']);
+        $this->assertEquals($admin['desk']['sales'], $dashboard['sales']);
+
+        auth()->forgetGuards();
+        $user = $this->postJson('/api/login', [
+            'email' => 'user@harmony.community',
+            'password' => 'Listener123',
+            'role' => 'user',
+        ])->assertOk()->json();
+        $this->assertArrayNotHasKey('desk', $user);
+        auth()->forgetGuards();
+        $this->withToken($user['token'])->getJson('/api/dashboard')->assertForbidden();
+        $this->withToken($user['token'])->getJson('/api/me?desk=1')->assertOk()->assertJsonMissingPath('desk');
+    }
+
     private function photoUpload(string $name): UploadedFile
     {
         $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');

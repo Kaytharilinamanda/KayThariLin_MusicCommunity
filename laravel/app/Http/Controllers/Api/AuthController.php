@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\Desk;
 use App\Support\Records;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -79,15 +80,30 @@ class AuthController extends Controller
             Records::fail('This organizer registration was not approved.', 403);
         }
 
-        return [
+        $payload = [
             'token' => $user->createToken('harmony')->plainTextToken,
             'user' => Records::user($user),
         ];
+        $desk = Desk::for($user);
+        if ($desk) {
+            $payload['desk'] = $desk;
+        }
+
+        return $payload;
     }
 
     public function me(Request $request)
     {
-        return ['user' => Records::user($request->user())];
+        $user = $request->user();
+        $payload = ['user' => Records::user($user)];
+        if ($request->boolean('desk')) {
+            $desk = Desk::for($user);
+            if ($desk) {
+                $payload['desk'] = $desk;
+            }
+        }
+
+        return $payload;
     }
 
     public function update(Request $request)

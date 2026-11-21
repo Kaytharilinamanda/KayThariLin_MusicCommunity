@@ -12,9 +12,9 @@ import {
   UserRound,
   Users,
 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import StudioShell from "./StudioShell"
-import { api } from "../../lib/api"
+import { useDeskRows, warmDesk } from "../../lib/deskCache"
 
 const groups = [
   {
@@ -55,12 +55,24 @@ const groups = [
   },
 ]
 
-export default function AdminLayout() {
-  const [notes, setNotes] = useState([])
+const warm = [
+  "/api/dashboard",
+  "/api/events",
+  "/api/tickets",
+  "/api/programs/workshops",
+  "/api/programs/courses",
+  "/api/programs/categories",
+  "/api/users",
+  "/api/posts/manage",
+  "/api/announcements/manage",
+  "/api/reviews",
+  "/api/notifications",
+]
 
-  useEffect(() => {
-    api("/api/notifications").then((data) => setNotes(data.notifications || [])).catch(() => setNotes([]))
-  }, [])
+export default function AdminLayout() {
+  const { rows: notes } = useDeskRows("/api/notifications", "notifications")
+
+  useEffect(() => warmDesk(warm), [])
 
   return <StudioShell homeTo="/admin" kicker="Admin dashboard" groups={groups} profileTo="/admin/profile" role="Admin" notes={notes} />
 }

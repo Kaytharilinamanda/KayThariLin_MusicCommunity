@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react"
 import ProgramDesk from "../../components/organizer/ProgramDesk"
 import { DataTable, Td } from "../../components/ui/DataTable"
 import Button from "../../components/ui/Button"
@@ -6,6 +5,7 @@ import { StatusBadge } from "../../components/admin/ResourceScreen"
 import { useAppState } from "../../context/AppState"
 import { instruments, workshopCategories } from "../../data/content"
 import { api } from "../../lib/api"
+import { useDeskRows } from "../../lib/deskCache"
 import { longDate, money, timeRange } from "../../lib/format"
 import { useTitle } from "../../lib/useTitle"
 
@@ -196,11 +196,7 @@ function CourseSignups({ first = false }) {
 
 function Signups({ endpoint, listKey, title, text, columns, empty, render, first = false, confirmStatus }) {
   const { notify } = useAppState()
-  const [rows, setRows] = useState([])
-
-  useEffect(() => {
-    api(endpoint).then((data) => setRows(data[listKey] || [])).catch(() => setRows([]))
-  }, [endpoint, listKey])
+  const { rows, setRows, ready } = useDeskRows(endpoint, listKey)
 
   async function confirm(row) {
     try {
@@ -219,7 +215,7 @@ function Signups({ endpoint, listKey, title, text, columns, empty, render, first
         <h2 className={first ? "font-display text-3xl text-white" : "font-display text-2xl text-white"}>{title}</h2>
         <p className="mt-2 max-w-2xl text-sm text-zinc-400">{text}</p>
       </div>
-      <DataTable columns={columns} rows={rows} empty={empty} render={(row) => render(row, confirm)} />
+      <DataTable columns={columns} rows={rows} empty={ready ? empty : ""} render={(row) => render(row, confirm)} />
     </section>
   )
 }

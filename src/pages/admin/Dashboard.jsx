@@ -4,7 +4,7 @@ import { Link } from "react-router-dom"
 import { AreaChart, DonutChart } from "../../components/admin/Charts"
 import { StatusBadge } from "../../components/admin/ResourceScreen"
 import { useAppState } from "../../context/AppState"
-import { api } from "../../lib/api"
+import { fetchDesk } from "../../lib/deskCache"
 import { money } from "../../lib/format"
 import { useTitle } from "../../lib/useTitle"
 
@@ -36,21 +36,36 @@ const emptyDash = {
   ordersList: [],
 }
 
+function readDash(payload) {
+  const recent = Array.isArray(payload?.ordersList) ? payload.ordersList : []
+  const orderCount = Number(payload?.orders ?? recent.length)
+  return { ...emptyDash, ...payload, orders: orderCount, ordersList: recent }
+}
+
 export default function Dashboard() {
   useTitle("Admin dashboard")
-  const { user } = useAppState()
-  const [dash, setDash] = useState(emptyDash)
+  const { user, desk, setDesk } = useAppState()
+  const cached = desk?.role === "admin" ? readDash(desk) : null
+  const [dash, setDash] = useState(() => cached || emptyDash)
+  const [live, setLive] = useState(Boolean(cached))
 
   useEffect(() => {
-    api("/api/dashboard")
+    let current = true
+    fetchDesk("/api/dashboard")
       .then((data) => {
-        const payload = data.dashboard || {}
-        const recent = Array.isArray(payload.ordersList) ? payload.ordersList : Array.isArray(payload.orders) ? payload.orders : []
-        const orderCount = Array.isArray(payload.orders) ? recent.length : Number(payload.orders ?? recent.length)
-        setDash({ ...emptyDash, ...payload, orders: orderCount, ordersList: recent })
+        if (!current || data.dashboard?.role !== "admin") return
+        const next = readDash(data.dashboard)
+        setDash(next)
+        setDesk(next)
+        setLive(true)
       })
-      .catch(() => {})
-  }, [])
+      .catch(() => {
+        if (current) setLive(true)
+      })
+    return () => {
+      current = false
+    }
+  }, [setDesk])
 
   const sales = dash.sales
   const seats = dash.seats
@@ -60,13 +75,14 @@ export default function Dashboard() {
   const genreSplit = dash.genreSplit
   const waiting = dash.waiting
   const activity = dash.activity
+  const figure = (value) => (live ? value : "—")
 
   const stats = [
-    { label: "Ticket sales", value: money(sales), note: `${seats} seats sold`, to: "/admin/reports" },
-    { label: "Orders", value: String(dash.orders), note: "Platform-wide", to: "/admin/tickets" },
-    { label: "Events", value: String(dash.events), note: `${dash.pendingEvents} waiting for approval`, to: "/admin/events" },
-    { label: "Workshops", value: String(dash.workshops), note: "Programs on the public list", to: "/admin/workshops" },
-    { label: "Accounts", value: String(dash.accounts), note: `${published} announcements live`, to: "/admin/users" },
+    { label: "Ticket sales", value: figure(money(sales)), note: live ? `${seats} seats sold` : "Counting orders", to: "/admin/reports" },
+    { label: "Orders", value: figure(String(dash.orders)), note: "Platform-wide", to: "/admin/tickets" },
+    { label: "Events", value: figure(String(dash.events)), note: live ? `${dash.pendingEvents} waiting for approval` : "Counting shows", to: "/admin/events" },
+    { label: "Workshops", value: figure(String(dash.workshops)), note: "Programs on the public list", to: "/admin/workshops" },
+    { label: "Accounts", value: figure(String(dash.accounts)), note: live ? `${published} announcements live` : "Counting accounts", to: "/admin/users" },
   ]
 
   return (

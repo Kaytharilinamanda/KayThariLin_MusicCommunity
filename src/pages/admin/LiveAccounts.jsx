@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import Button from "../../components/ui/Button"
 import Modal from "../../components/ui/Modal"
 import { DataTable, Td } from "../../components/ui/DataTable"
 import { SelectField, TextField } from "../../components/ui/Field"
 import { StatusBadge } from "../../components/admin/ResourceScreen"
 import { api } from "../../lib/api"
+import { useDeskRows } from "../../lib/deskCache"
 import { roleLabel, statusLabel } from "../../lib/account"
 import { useAppState } from "../../context/AppState"
 
@@ -21,7 +22,8 @@ const empty = {
 
 export default function LiveAccounts({ role, title, text }) {
   const { notify } = useAppState()
-  const [users, setUsers] = useState([])
+  const { rows, ready, reload } = useDeskRows("/api/users", "users")
+  const users = role ? rows.filter((user) => user.role === role) : rows
   const [error, setError] = useState("")
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(empty)
@@ -30,17 +32,12 @@ export default function LiveAccounts({ role, title, text }) {
 
   async function load() {
     try {
-      const data = await api("/api/users")
-      setUsers(role ? data.users.filter((user) => user.role === role) : data.users)
+      await reload()
       setError("")
     } catch (err) {
       setError(err.message)
     }
   }
-
-  useEffect(() => {
-    load()
-  }, [role])
 
   function update(key, value) {
     setForm((current) => ({ ...current, [key]: value }))
@@ -117,7 +114,7 @@ export default function LiveAccounts({ role, title, text }) {
       <DataTable
         columns={["Account", "Role", "City", "Status", ""]}
         rows={users}
-        empty="No registered accounts yet."
+        empty={ready ? "No registered accounts yet." : ""}
         render={(row) => (
           <>
             <Td className="text-white">

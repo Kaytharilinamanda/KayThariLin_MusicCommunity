@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { Search } from "lucide-react"
 import ActionMenu from "../ui/ActionMenu"
 import Badge from "../ui/Badge"
@@ -7,6 +7,7 @@ import Modal from "../ui/Modal"
 import { SelectField, TextArea, TextField } from "../ui/Field"
 import { useAppState } from "../../context/AppState"
 import { api } from "../../lib/api"
+import { useDeskRows } from "../../lib/deskCache"
 import { cn, statusTone } from "../../lib/format"
 
 function blankForm(fields) {
@@ -41,12 +42,11 @@ export default function ResourceScreen({
   canEditStatus = false,
 }) {
   const { notify } = useAppState()
-  const [rows, setRows] = useState(seed || [])
-
-  useEffect(() => {
-    if (!endpoint) return
-    api(endpoint).then((data) => setRows(data[listKey] || [])).catch((error) => notify(error.message))
-  }, [endpoint, listKey, notify])
+  const desk = useDeskRows(endpoint, listKey)
+  const [localRows, setLocalRows] = useState(seed || [])
+  const rows = endpoint ? desk.rows : localRows
+  const setRows = endpoint ? desk.setRows : setLocalRows
+  const ready = endpoint ? desk.ready : true
   const [query, setQuery] = useState("")
   const [activeFilters, setActiveFilters] = useState({})
   const [editing, setEditing] = useState(null)
@@ -199,7 +199,7 @@ export default function ResourceScreen({
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={columns.length} className="px-4 py-14 text-center text-zinc-400">
-                  Nothing matches those filters.
+                  {ready ? "Nothing matches those filters." : ""}
                 </td>
               </tr>
             )}

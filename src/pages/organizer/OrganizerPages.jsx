@@ -23,6 +23,7 @@ import { SelectField, TextArea, TextField } from "../../components/ui/Field"
 import { useAppState } from "../../context/AppState"
 import { categories } from "../../data/content"
 import { api } from "../../lib/api"
+import { fetchDesk, useDeskRows, warmDesk } from "../../lib/deskCache"
 import { money } from "../../lib/format"
 import { statusLabel } from "../../lib/account"
 import { useTitle } from "../../lib/useTitle"
@@ -66,13 +67,26 @@ const groups = [
   },
 ]
 
+const warm = [
+  "/api/dashboard",
+  "/api/events",
+  "/api/tickets",
+  "/api/orders",
+  "/api/announcements/mine?kind=announcement",
+  "/api/reviews",
+  "/api/programs/workshops",
+  "/api/programs/courses",
+  "/api/programs/categories",
+  "/api/workshop-registrations",
+  "/api/enrollments",
+  "/api/notifications",
+]
+
 export function OrganizerLayout() {
   const { user } = useAppState()
-  const [notes, setNotes] = useState([])
+  const { rows: notes } = useDeskRows("/api/notifications", "notifications")
 
-  useEffect(() => {
-    api("/api/notifications").then((data) => setNotes(data.notifications || [])).catch(() => setNotes([]))
-  }, [])
+  useEffect(() => warmDesk(warm), [])
 
   return (
     <StudioShell
@@ -104,23 +118,32 @@ function PageIntro({ title, text }) {
 
 export function OrganizerHome() {
   useTitle("Organizer")
-  const [events, setEvents] = useState([])
-  const [orders, setOrders] = useState([])
-  const sold = orders.filter((row) => row.status === "Paid" || row.status === "Confirmed").reduce((sum, row) => sum + row.total, 0)
-  const seats = orders.reduce((sum, row) => sum + row.qty, 0)
+  const { desk, setDesk } = useAppState()
+  const cached = desk?.role === "organizer" ? desk : null
+  const [stats, setStats] = useState(cached)
+  const view = stats || cached
 
   useEffect(() => {
-    api("/api/events").then((data) => setEvents(data.events || [])).catch(() => setEvents([]))
-    api("/api/orders").then((data) => setOrders(data.orders || [])).catch(() => setOrders([]))
-  }, [])
+    let current = true
+    fetchDesk("/api/dashboard")
+      .then((data) => {
+        if (!current || data.dashboard?.role !== "organizer") return
+        setStats(data.dashboard)
+        setDesk(data.dashboard)
+      })
+      .catch(() => {})
+    return () => {
+      current = false
+    }
+  }, [setDesk])
 
   return (
     <section>
       <PageIntro title="Your shows" text="Ticket sales, bookings, and attendance for the events on this organizer account." />
       <div className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Events" value={events.length} detail={`${events.filter((row) => row.status === "Approved").length} approved`} />
-        <Stat label="Ticket sales" value={money(sold)} detail="Confirmed orders for your events" />
-        <Stat label="Seats booked" value={seats} detail="Across stored orders" />
+        <Stat label="Events" value={view ? view.events : "—"} detail={view ? `${view.approved} approved` : "Counting shows"} />
+        <Stat label="Ticket sales" value={view ? money(view.sales) : "—"} detail="Confirmed orders for your events" />
+        <Stat label="Seats booked" value={view ? view.seats : "—"} detail="Across stored orders" />
       </div>
     </section>
   )
@@ -180,7 +203,7 @@ const blankEvent = {
 export function OrganizerEvents() {
   useTitle("Organizer events")
   const { notify } = useAppState()
-  const [events, setEvents] = useState([])
+  const { rows: events, ready, reload } = useDeskRows("/api/events", "events")
   const [error, setError] = useState("")
   const [form, setForm] = useState(blankEvent)
   const [editing, setEditing] = useState("")
@@ -189,17 +212,12 @@ export function OrganizerEvents() {
 
   async function load() {
     try {
-      const data = await api("/api/events")
-      setEvents(data.events || [])
+      await reload()
       setError("")
     } catch (err) {
       setError(err.message)
     }
   }
-
-  useEffect(() => {
-    load()
-  }, [])
 
   function update(key, value) {
     setForm((current) => ({ ...current, [key]: value }))
@@ -334,7 +352,7 @@ export function OrganizerEvents() {
       <DataTable
         columns={["Show", "When", "Venue", "Price", "Status", ""]}
         rows={events}
-        empty="No events yet."
+        empty={ready ? "No events yet." : ""}
         render={(row) => (
           <>
             <Td className="text-white">
@@ -392,12 +410,8 @@ function noticePage({ title, text, noun }) {
   return function NoticePage() {
     useTitle(title)
     const { notify } = useAppState()
-    const [rows, setRows] = useState([])
+    const { rows, setRows, ready } = useDeskRows("/api/announcements/mine?kind=announcement", "announcements")
     const [form, setForm] = useState({ title: "", event: "One Night", extra: "" })
-
-    useEffect(() => {
-      api("/api/announcements/mine?kind=announcement").then((data) => setRows(data.announcements || [])).catch((error) => notify(error.message))
-    }, [notify])
 
     async function submit(event) {
       event.preventDefault()
@@ -437,7 +451,7 @@ function noticePage({ title, text, noun }) {
         <DataTable
           columns={["Title", "Event", "Audience", "Status"]}
           rows={rows}
-          empty={`No ${noun}s yet.`}
+          empty={ready ? `No ${noun}s yet.` : ""}
           render={(row) => (
             <>
               <Td className="font-medium text-white">{row.title}</Td>
@@ -464,28 +478,24 @@ const blankTicket = { eventId: "", tier: "", price: "", quantity: "", salesStart
 export function OrganizerTicketSetup() {
   useTitle("Ticket setup")
   const { notify } = useAppState()
-  const [events, setEvents] = useState([])
-  const [rows, setRows] = useState([])
+  const { rows: events, ready: eventsReady, reload: reloadEvents } = useDeskRows("/api/events", "events")
+  const { rows, setRows, ready, reload: reloadTickets } = useDeskRows("/api/tickets", "tickets")
   const [error, setError] = useState("")
   const [form, setForm] = useState(blankTicket)
   const [editing, setEditing] = useState("")
 
+  useEffect(() => {
+    setForm((current) => ({ ...current, eventId: current.eventId || (events[0] ? String(events[0].id) : "") }))
+  }, [events])
+
   async function load() {
     try {
-      const [eventData, ticketData] = await Promise.all([api("/api/events"), api("/api/tickets")])
-      const nextEvents = eventData.events || []
-      setEvents(nextEvents)
-      setRows(ticketData.tickets || [])
-      setForm((current) => ({ ...current, eventId: current.eventId || (nextEvents[0] ? String(nextEvents[0].id) : "") }))
+      await Promise.all([reloadEvents(), reloadTickets()])
       setError("")
     } catch (err) {
       setError(err.message)
     }
   }
-
-  useEffect(() => {
-    load()
-  }, [])
 
   function update(key, value) {
     setForm((current) => ({ ...current, [key]: value }))
@@ -532,7 +542,7 @@ export function OrganizerTicketSetup() {
         text="Create, edit, and delete tickets for your own events. Choose a ticket type, then submit it for approval. You can read Pending, Approved, and Rejected here, then correct a rejection and resubmit."
       />
       {error && <p className="mb-4 text-sm text-rose-300">{error}</p>}
-      {events.length === 0 ? (
+      {eventsReady && events.length === 0 ? (
         <p className="mb-6 rounded-3xl border border-white/10 bg-panel p-5 text-sm text-zinc-400">Submit an event before you add tickets.</p>
       ) : (
         <form className="mb-6 grid gap-4 rounded-3xl border border-white/10 bg-panel p-5 sm:grid-cols-3" onSubmit={submit}>
@@ -564,7 +574,7 @@ export function OrganizerTicketSetup() {
       <DataTable
         columns={["Event", "Ticket type", "Price", "Quantity", "Window", "Status", ""]}
         rows={rows}
-        empty="No tickets yet."
+        empty={ready ? "No tickets yet." : ""}
         render={(row) => (
           <>
             <Td className="text-white">{row.event}</Td>
@@ -609,11 +619,7 @@ export function OrganizerTicketSetup() {
 export function OrganizerOrders() {
   useTitle("Organizer orders")
   const { notify } = useAppState()
-  const [rows, setRows] = useState([])
-
-  useEffect(() => {
-    api("/api/orders").then((data) => setRows(data.orders || [])).catch(() => setRows([]))
-  }, [])
+  const { rows, setRows, ready } = useDeskRows("/api/orders", "orders")
 
   async function confirm(row) {
     try {
@@ -631,7 +637,7 @@ export function OrganizerOrders() {
       <DataTable
         columns={["Order", "Buyer", "Tickets", "Total", "Status", ""]}
         rows={rows}
-        empty="No orders yet."
+        empty={ready ? "No orders yet." : ""}
         render={(row) => (
           <>
             <Td className="text-white">
@@ -659,11 +665,7 @@ export function OrganizerOrders() {
 
 export function OrganizerEnquiries() {
   useTitle("Feedback")
-  const [rows, setRows] = useState([])
-
-  useEffect(() => {
-    api("/api/reviews").then((data) => setRows(data.reviews || [])).catch(() => setRows([]))
-  }, [])
+  const { rows, ready } = useDeskRows("/api/reviews", "reviews")
 
   return (
     <section>
@@ -671,7 +673,7 @@ export function OrganizerEnquiries() {
       <DataTable
         columns={["From", "About", "Kind", "Rating", "Note"]}
         rows={rows}
-        empty="No feedback yet."
+        empty={ready ? "No feedback yet." : ""}
         render={(row) => (
           <>
             <Td className="font-medium text-white">{row.from || "Member"}</Td>
@@ -736,26 +738,22 @@ function bookingStatus(orders) {
 
 export function OrganizerReports() {
   useTitle("Organizer reports")
-  const [events, setEvents] = useState([])
-  const [orders, setOrders] = useState([])
+  const { rows: events, ready: eventsReady } = useDeskRows("/api/events", "events")
+  const { rows: orders, ready: ordersReady } = useDeskRows("/api/orders", "orders")
+  const ready = eventsReady && ordersReady
   const paid = orders.filter((row) => row.status === "Paid" || row.status === "Confirmed")
   const sales = paid.reduce((sum, row) => sum + row.total, 0)
   const showSales = salesByShow(events, orders)
   const revenue = revenueByMonth(orders)
   const statuses = bookingStatus(orders)
 
-  useEffect(() => {
-    api("/api/events").then((data) => setEvents(data.events || [])).catch(() => setEvents([]))
-    api("/api/orders").then((data) => setOrders(data.orders || [])).catch(() => setOrders([]))
-  }, [])
-
   return (
     <section>
       <PageIntro title="Reports" text="Ticket sales and bookings for your events, with charts for revenue, sales by show, and booking status." />
       <div className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Sales" value={money(sales)} detail={`${paid.length} confirmed orders`} />
-        <Stat label="Bookings" value={orders.length} detail="Including pending holds" />
-        <Stat label="Approved events" value={events.filter((row) => row.status === "Approved").length} detail={`${events.length} submitted`} />
+        <Stat label="Sales" value={ready ? money(sales) : "—"} detail={ready ? `${paid.length} confirmed orders` : "Counting orders"} />
+        <Stat label="Bookings" value={ready ? orders.length : "—"} detail="Including pending holds" />
+        <Stat label="Approved events" value={ready ? events.filter((row) => row.status === "Approved").length : "—"} detail={ready ? `${events.length} submitted` : "Counting shows"} />
       </div>
       <div className="mt-6 grid gap-4 xl:grid-cols-[1.4fr_0.8fr]">
         <article className="rounded-3xl border border-[#f3d6da] bg-raised p-5 shadow-sm">
@@ -770,8 +768,8 @@ export function OrganizerReports() {
         </article>
         <article className="rounded-3xl border border-[#f3d6da] bg-raised p-5 shadow-sm">
           <h2 className="font-display text-xl text-white">Booking status</h2>
-          {statuses.length === 0 ? (
-            <p className="mt-6 text-sm text-zinc-400">No bookings yet.</p>
+          {!ready || statuses.length === 0 ? (
+            <p className="mt-6 text-sm text-zinc-400">{ready ? "No bookings yet." : ""}</p>
           ) : (
             <div className="mt-4 flex items-center gap-4">
               <DonutChart slices={statuses} label="Bookings by status" center="orders" />
@@ -791,8 +789,8 @@ export function OrganizerReports() {
       <article className="mt-4 rounded-3xl border border-[#f3d6da] bg-raised p-5 shadow-sm">
         <h2 className="font-display text-xl text-white">Sales by show</h2>
         <p className="text-sm text-zinc-500">Confirmed and paid totals for each event</p>
-        {showSales.length === 0 ? (
-          <p className="mt-6 text-sm text-zinc-400">No events to chart yet.</p>
+        {!ready || showSales.length === 0 ? (
+          <p className="mt-6 text-sm text-zinc-400">{ready ? "No events to chart yet." : ""}</p>
         ) : (
           <>
             <BarChart series={showSales} />
@@ -811,7 +809,7 @@ export function OrganizerReports() {
         <DataTable
           columns={["Event", "Status", "From price", "When"]}
           rows={events}
-          empty="No events to report."
+          empty={ready ? "No events to report." : ""}
           render={(row) => (
             <>
               <Td className="font-medium text-white">{row.title}</Td>

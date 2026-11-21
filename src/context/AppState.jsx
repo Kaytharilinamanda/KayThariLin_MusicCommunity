@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { api } from "../lib/api"
 import { clearToken, readToken, saveToken } from "../lib/account"
+import { clearDesk, writeDesk } from "../lib/deskCache"
 
 const AppStateContext = createContext(null)
 const BOOKING_KEY = "harmony-bookings"
@@ -19,6 +20,7 @@ function loadBookings() {
 
 export function AppStateProvider({ children }) {
   const [user, setUser] = useState(null)
+  const [desk, setDesk] = useState(null)
   const [ready, setReady] = useState(false)
   const [bookings, setBookings] = useState(loadBookings)
   const [toast, setToast] = useState(null)
@@ -32,12 +34,16 @@ export function AppStateProvider({ children }) {
 
   const signOut = useCallback(() => {
     clearToken()
+    clearDesk()
     setUser(null)
+    setDesk(null)
   }, [])
 
   const acceptSession = useCallback((data, remember = true) => {
     saveToken(data.token, remember)
     setUser(data.user)
+    setDesk(data.desk || null)
+    if (data.desk) writeDesk("/api/dashboard", { dashboard: data.desk })
   }, [])
 
   useEffect(() => {
@@ -45,9 +51,18 @@ export function AppStateProvider({ children }) {
       setReady(true)
       return
     }
-    api("/api/me")
-      .then((data) => setUser(data.user))
-      .catch(() => clearToken())
+    const path = window.location.pathname
+    const onDesk = path.startsWith("/admin") || path.startsWith("/organizer")
+    api(onDesk ? "/api/me?desk=1" : "/api/me")
+      .then((data) => {
+        setUser(data.user)
+        setDesk(data.desk || null)
+        if (data.desk) writeDesk("/api/dashboard", { dashboard: data.desk })
+      })
+      .catch(() => {
+        clearToken()
+        setDesk(null)
+      })
       .finally(() => setReady(true))
   }, [])
 
@@ -86,8 +101,8 @@ export function AppStateProvider({ children }) {
   const myBookings = user ? bookings[user.id] || emptyBook() : emptyBook()
 
   const value = useMemo(
-    () => ({ user, setUser, ready, signOut, notify, acceptSession, addBooking, updateBooking, myBookings }),
-    [user, ready, signOut, notify, acceptSession, addBooking, updateBooking, myBookings],
+    () => ({ user, setUser, desk, setDesk, ready, signOut, notify, acceptSession, addBooking, updateBooking, myBookings }),
+    [user, desk, ready, signOut, notify, acceptSession, addBooking, updateBooking, myBookings],
   )
 
   return (

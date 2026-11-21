@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import { Image } from "lucide-react"
 import Button from "../ui/Button"
 import { DataTable, Td } from "../ui/DataTable"
 import { SelectField, TextField } from "../ui/Field"
 import { StatusBadge } from "../admin/ResourceScreen"
 import { api } from "../../lib/api"
+import { useDeskRows } from "../../lib/deskCache"
 import { useAppState } from "../../context/AppState"
 import { useTitle } from "../../lib/useTitle"
 
@@ -15,7 +16,7 @@ function blank(fields) {
 export default function ProgramDesk({ kind, title, text, fields, columns, render, withImage = false }) {
   useTitle(title)
   const { notify } = useAppState()
-  const [rows, setRows] = useState([])
+  const { rows, ready, reload } = useDeskRows(`/api/programs/${kind}`, "items")
   const [error, setError] = useState("")
   const [form, setForm] = useState(() => blank(fields))
   const [image, setImage] = useState("")
@@ -25,17 +26,12 @@ export default function ProgramDesk({ kind, title, text, fields, columns, render
 
   async function load() {
     try {
-      const data = await api(`/api/programs/${kind}`)
-      setRows(data.items || [])
+      await reload()
       setError("")
     } catch (err) {
       setError(err.message)
     }
   }
-
-  useEffect(() => {
-    load()
-  }, [kind])
 
   function update(key, value) {
     setForm((current) => ({ ...current, [key]: value }))
@@ -178,7 +174,7 @@ export default function ProgramDesk({ kind, title, text, fields, columns, render
       <DataTable
         columns={[...columns, "Status", ""]}
         rows={rows}
-        empty={`No ${title.toLowerCase()} yet.`}
+        empty={ready ? `No ${title.toLowerCase()} yet.` : ""}
         render={(row) => (
           <>
             {render(row)}
