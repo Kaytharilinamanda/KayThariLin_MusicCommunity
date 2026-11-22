@@ -207,7 +207,7 @@ export default function ResourceScreen({
               <tr key={row.id} className="align-middle hover:bg-white/[0.03]">
                 {renderCells(row)}
                 <td className="px-4 py-3 text-right">
-                  {readOnly && canDelete ? (
+                  {readOnly ? (
                     <div className="flex justify-end gap-2">
                       <Button variant="secondary" className="px-3 py-1.5 text-xs" onClick={() => setViewing(row)}>
                         View
@@ -217,22 +217,24 @@ export default function ResourceScreen({
                           Edit
                         </Button>
                       )}
-                      <Button variant="danger" className="px-3 py-1.5 text-xs" onClick={() => setRemoving(row)}>
-                        Remove
-                      </Button>
+                      {canDelete && (
+                        <Button variant="danger" className="px-3 py-1.5 text-xs" onClick={() => setRemoving(row)}>
+                          Remove
+                        </Button>
+                      )}
                     </div>
                   ) : (
-                    <ActionMenu
-                      items={
-                        readOnly
-                          ? [{ label: "View", onClick: () => setViewing(row) }]
-                          : [
-                              { label: "View", onClick: () => setViewing(row) },
-                              { label: "Edit", onClick: () => openEdit(row) },
-                              { label: "Remove", danger: true, onClick: () => setRemoving(row) },
-                            ]
-                      }
-                    />
+                    <div className="flex items-center justify-end gap-2">
+                      <Button variant="secondary" className="px-3 py-1.5 text-xs" onClick={() => setViewing(row)}>
+                        View
+                      </Button>
+                      <ActionMenu
+                        items={[
+                          { label: "Edit", onClick: () => openEdit(row) },
+                          { label: "Remove", danger: true, onClick: () => setRemoving(row) },
+                        ]}
+                      />
+                    </div>
                   )}
                 </td>
               </tr>
