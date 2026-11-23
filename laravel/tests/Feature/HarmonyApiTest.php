@@ -741,6 +741,34 @@ class HarmonyApiTest extends TestCase
         $this->withToken($user['token'])->getJson('/api/me?desk=1')->assertOk()->assertJsonMissingPath('desk');
     }
 
+    public function test_member_profile_lists_followers_and_follow_toggles(): void
+    {
+        $members = collect($this->getJson('/api/members')->assertOk()->json('members'));
+        $member = $members->firstWhere('name', 'Michael');
+        $this->assertNotNull($member);
+        $this->assertSame(0, $member['followers']);
+        $this->assertFalse($member['following']);
+
+        $user = $this->postJson('/api/login', [
+            'email' => 'user@harmony.community',
+            'password' => 'Listener123',
+            'role' => 'user',
+        ])->assertOk()->json();
+
+        $this->withToken($user['token'])->postJson('/api/members/'.$member['id'].'/follow')
+            ->assertOk()
+            ->assertJson(['following' => true]);
+
+        $followed = collect($this->withToken($user['token'])->getJson('/api/members')->json('members'))
+            ->firstWhere('id', $member['id']);
+        $this->assertTrue($followed['following']);
+        $this->assertSame(1, $followed['followers']);
+
+        $this->withToken($user['token'])->postJson('/api/members/'.$member['id'].'/follow')
+            ->assertOk()
+            ->assertJson(['following' => false]);
+    }
+
     private function photoUpload(string $name): UploadedFile
     {
         $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');

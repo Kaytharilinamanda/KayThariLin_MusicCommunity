@@ -209,6 +209,10 @@ class CommunityController extends Controller
         $ids = $userId
             ? Follow::query()->where('user_id', $userId)->pluck('community_member_id')->all()
             : [];
+        $followers = Follow::query()
+            ->selectRaw('community_member_id, COUNT(*) as total')
+            ->groupBy('community_member_id')
+            ->pluck('total', 'community_member_id');
 
         return ['members' => CommunityMember::query()->orderBy('name')->get()->map(fn (CommunityMember $member) => [
             'id' => $member->id,
@@ -216,6 +220,7 @@ class CommunityController extends Controller
             'role' => $member->role_label,
             'city' => $member->city,
             'avatar' => $member->avatar,
+            'followers' => (int) ($followers[$member->id] ?? 0),
             'following' => in_array($member->id, $ids, true),
         ])->values()];
     }

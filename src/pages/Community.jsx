@@ -39,7 +39,7 @@ function ReplyComposer({ user, value, author, onChange, onSend }) {
   )
 }
 
-function SharedCard({ post }) {
+function SharedCard({ post, onOpen }) {
   if (!post) return null
   if (post.missing) {
     return <p className="mt-3 rounded-2xl border border-[#ead7da] bg-[#fffdfb] px-4 py-3 text-sm text-[#57534e]">This post is no longer available.</p>
@@ -51,7 +51,14 @@ function SharedCard({ post }) {
         <Cover src={post.avatar} alt="" className="h-9 w-9 rounded-full" />
         <div>
           <p className="text-sm font-medium text-[#1c1416]">
-            {post.author} <span className="font-normal text-[#8a737a]">{post.handle}</span>
+            {onOpen ? (
+              <button type="button" onClick={() => onOpen(post.author)} className="hover:underline">
+                {post.author}
+              </button>
+            ) : (
+              post.author
+            )}{" "}
+            <span className="font-normal text-[#8a737a]">{post.handle}</span>
           </p>
           <p className="text-xs text-[#8a737a]">{post.time} · {post.topic}</p>
         </div>
@@ -96,6 +103,7 @@ export default function Community() {
   const [shareTarget, setShareTarget] = useState(null)
   const [shareNote, setShareNote] = useState("")
   const [sharing, setSharing] = useState(false)
+  const [profile, setProfile] = useState(null)
 
   useEffect(() => {
     let active = true
@@ -114,6 +122,36 @@ export default function Community() {
       active = false
     }
   }, [])
+
+  function memberByName(name) {
+    return members.find((item) => item.name.toLowerCase() === String(name || "").toLowerCase()) || null
+  }
+
+  function openMember(name) {
+    const member = memberByName(name)
+    if (member) setProfile(member)
+  }
+
+  async function toggleFollow(member) {
+    if (!asUser()) return
+    try {
+      const data = await api(`/api/members/${member.id}/follow`, { method: "POST" })
+      const now = Boolean(data.following)
+      const patch = (item) => {
+        if (item.id !== member.id) return item
+        const delta = now === Boolean(item.following) ? 0 : now ? 1 : -1
+        return { ...item, following: now, followers: Math.max(0, (item.followers || 0) + delta) }
+      }
+      setMembers((current) => current.map(patch))
+      setProfile((current) => (current && current.id === member.id ? patch(current) : current))
+    } catch (error) {
+      notify(error.message)
+    }
+  }
+
+  const profilePosts = profile
+    ? feed.filter((post) => post.author?.toLowerCase() === profile.name.toLowerCase())
+    : []
 
   async function chooseFile(event) {
     const file = event.target.files?.[0]
@@ -306,10 +344,23 @@ export default function Community() {
             return (
               <article key={post.id} className="rounded-3xl border border-white/10 bg-panel p-4 sm:p-5">
                 <div className="flex items-center gap-3">
-                  <Cover src={post.avatar} alt="" className="h-11 w-11 rounded-full" />
+                  {memberByName(post.author) ? (
+                    <button type="button" onClick={() => openMember(post.author)} className="shrink-0 rounded-full" aria-label={`View ${post.author}`}>
+                      <Cover src={post.avatar} alt="" className="h-11 w-11 rounded-full" />
+                    </button>
+                  ) : (
+                    <Cover src={post.avatar} alt="" className="h-11 w-11 rounded-full" />
+                  )}
                   <div>
                     <p className="text-sm font-medium text-white">
-                      {post.author} <span className="font-normal text-zinc-500">{post.handle}</span>
+                      {memberByName(post.author) ? (
+                        <button type="button" onClick={() => openMember(post.author)} className="hover:underline">
+                          {post.author}
+                        </button>
+                      ) : (
+                        post.author
+                      )}{" "}
+                      <span className="font-normal text-zinc-500">{post.handle}</span>
                     </p>
                     <p className="text-xs text-zinc-500">
                       {post.time} · {post.share ? "Shared" : post.topic}
@@ -317,7 +368,7 @@ export default function Community() {
                   </div>
                 </div>
                 {post.text ? <p className="mt-4 text-sm leading-7 text-zinc-200">{post.text}</p> : null}
-                {post.share ? <SharedCard post={post.share} /> : post.image ? <Cover src={post.image} alt="" className="mt-4 max-h-96 w-full rounded-2xl" /> : null}
+                {post.share ? <SharedCard post={post.share} onOpen={memberByName(post.share.author) ? openMember : undefined} /> : post.image ? <Cover src={post.image} alt="" className="mt-4 max-h-96 w-full rounded-2xl" /> : null}
                 <div className="mt-4 flex gap-2 border-t border-white/10 pt-3">
                   <button
                     type="button"
@@ -363,7 +414,14 @@ export default function Community() {
                             <div>
                               <div className="rounded-2xl bg-white/5 px-3 py-2">
                                 <p className="text-xs text-zinc-400">
-                                  {comment.author} · {comment.time}
+                                  {memberByName(comment.author) ? (
+                                    <button type="button" onClick={() => openMember(comment.author)} className="hover:underline">
+                                      {comment.author}
+                                    </button>
+                                  ) : (
+                                    comment.author
+                                  )}{" "}
+                                  · {comment.time}
                                 </p>
                                 <p className="text-sm text-zinc-200">{comment.text}</p>
                               </div>
@@ -385,7 +443,14 @@ export default function Community() {
                                   <div>
                                     <div className="rounded-2xl bg-white/5 px-3 py-2">
                                       <p className="text-xs text-zinc-400">
-                                        {reply.author} · {reply.time}
+                                        {memberByName(reply.author) ? (
+                                          <button type="button" onClick={() => openMember(reply.author)} className="hover:underline">
+                                            {reply.author}
+                                          </button>
+                                        ) : (
+                                          reply.author
+                                        )}{" "}
+                                        · {reply.time}
                                       </p>
                                       <p className="text-sm text-zinc-200">{reply.text}</p>
                                     </div>
@@ -453,25 +518,21 @@ export default function Community() {
             )}
             {members.map((member) => (
               <li key={member.id} className="flex items-center gap-3">
-                <Cover src={member.avatar} alt="" className="h-10 w-10 rounded-full" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm text-white">{member.name}</p>
-                  <p className="text-xs text-zinc-500">
-                    {member.role} · {member.city}
-                  </p>
-                </div>
+                <button type="button" onClick={() => setProfile(member)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+                  <Cover src={member.avatar} alt="" className="h-10 w-10 rounded-full" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm text-white">{member.name}</p>
+                    <p className="truncate text-xs text-zinc-500">
+                      {member.role} · {member.city}
+                    </p>
+                  </div>
+                </button>
                 <button
                   type="button"
-                  onClick={async () => {
-                    if (!asUser()) return
-                    try {
-                      const data = await api(`/api/members/${member.id}/follow`, { method: "POST" })
-                      setMembers((current) => current.map((item) => (item.id === member.id ? { ...item, following: data.following } : item)))
-                    } catch (error) {
-                      notify(error.message)
-                    }
-                  }}
-                  className="rounded-full border border-white/15 px-3 py-1 text-xs text-zinc-200 hover:bg-white/8"
+                  onClick={() => toggleFollow(member)}
+                  className={member.following
+                    ? "shrink-0 rounded-full border border-[#f0d5d8] bg-[#ffffff] px-3 py-1 text-xs font-semibold text-[#3d2a2e] hover:bg-[#fff5f6]"
+                    : "shrink-0 rounded-full border border-[#f0d5d8] bg-[#ffffff] px-3 py-1 text-xs font-semibold text-[#9f1239] hover:bg-[#fff5f6]"}
                 >
                   {member.following ? "Following" : "Follow"}
                 </button>
@@ -480,6 +541,49 @@ export default function Community() {
           </ul>
         </aside>
       </Container>
+      <Modal
+        open={Boolean(profile)}
+        title={profile?.name || "Profile"}
+        subtitle={profile ? `${profile.role} · ${profile.city}` : ""}
+        wide
+        onClose={() => setProfile(null)}
+      >
+        {profile && (
+          <div>
+            <div className="flex items-center gap-4">
+              <Cover src={profile.avatar} alt="" className="h-20 w-20 rounded-full" />
+              <div>
+                <p className="text-sm text-[#57534e]">
+                  {profile.followers || 0} {profile.followers === 1 ? "follower" : "followers"}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => toggleFollow(profile)}
+                  className={profile.following
+                    ? "mt-3 rounded-full border border-[#f0d5d8] bg-[#ffffff] px-5 py-2 text-sm font-semibold text-[#3d2a2e] hover:bg-[#fff5f6]"
+                    : "mt-3 rounded-full border border-[#f0d5d8] bg-[#ffffff] px-5 py-2 text-sm font-semibold text-[#9f1239] hover:bg-[#fff5f6]"}
+                >
+                  {profile.following ? "Following" : "Follow"}
+                </button>
+              </div>
+            </div>
+            <p className="mt-6 text-xs font-semibold uppercase tracking-[0.16em] text-[#8a737a]">Posts</p>
+            {profilePosts.length === 0 ? (
+              <p className="mt-3 text-sm text-[#57534e]">No posts yet.</p>
+            ) : (
+              <ul className="mt-3 space-y-3">
+                {profilePosts.map((post) => (
+                  <li key={post.id} className="rounded-2xl border border-[#ead7da] bg-[#fffdfb] p-3">
+                    <p className="text-xs text-[#8a737a]">{post.time} · {post.share ? "Shared" : post.topic}</p>
+                    {post.text ? <p className="mt-2 text-sm leading-6 text-[#3d2a2e]">{post.text}</p> : null}
+                    {post.image ? <Cover src={post.image} alt="" className="mt-3 max-h-48 w-full rounded-xl" /> : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </Modal>
       <Modal open={picker} title="Add a photo" subtitle="Your profile photo stays beside the post. Choose a picture to show underneath." onClose={() => setPicker(false)}>
         <div className="mb-4 flex items-center gap-3">
           <Avatar user={user} className="h-12 w-12 text-sm" />

@@ -36,7 +36,7 @@ export default function Footer() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">Visit</p>
           <p className="mt-4 text-sm leading-6 text-zinc-300">
-            Level 4, 22 Pansodan Street
+            Level 8, Time City
             <br />
             Yangon
           </p>
@@ -48,7 +48,7 @@ export default function Footer() {
       </Container>
       <div className="border-t border-[#f3d6da]">
         <Container className="flex flex-col gap-2 py-5 text-xs text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
-          <p>© {year} Harmony. A design preview with sample listings.</p>
+          <p>© {year} Harmony. All rights reserved.</p>
           <p>Yangon · Mandalay · Naypyidaw</p>
         </Container>
       </div>
