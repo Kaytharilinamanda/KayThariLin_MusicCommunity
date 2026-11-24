@@ -205,6 +205,7 @@ class CommunityController extends Controller
 
     public function members(Request $request)
     {
+        $this->syncPostAuthors();
         $userId = auth('sanctum')->user()?->id;
         $ids = $userId
             ? Follow::query()->where('user_id', $userId)->pluck('community_member_id')->all()
@@ -223,6 +224,36 @@ class CommunityController extends Controller
             'followers' => (int) ($followers[$member->id] ?? 0),
             'following' => in_array($member->id, $ids, true),
         ])->values()];
+    }
+
+    private function syncPostAuthors(): void
+    {
+        $known = [];
+        foreach (CommunityMember::query()->pluck('name') as $name) {
+            $known[mb_strtolower(trim((string) $name))] = true;
+        }
+
+        $posts = Post::query()
+            ->with('user')
+            ->where('status', 'Visible')
+            ->where('author_name', '!=', '')
+            ->orderByDesc('id')
+            ->get();
+
+        foreach ($posts as $post) {
+            $name = trim((string) $post->author_name);
+            $key = mb_strtolower($name);
+            if ($name === '' || isset($known[$key])) {
+                continue;
+            }
+            CommunityMember::create([
+                'name' => $name,
+                'role_label' => trim((string) $post->role_label) ?: 'Member',
+                'city' => trim((string) ($post->user->city ?? '')),
+                'avatar' => $this->face($post->user, $post->avatar),
+            ]);
+            $known[$key] = true;
+        }
     }
 
     public function follow(Request $request, CommunityMember $member)

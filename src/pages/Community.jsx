@@ -127,6 +127,15 @@ export default function Community() {
     return members.find((item) => item.name.toLowerCase() === String(name || "").toLowerCase()) || null
   }
 
+  function memberDetail(member) {
+    return [member?.role, member?.city].filter(Boolean).join(" · ")
+  }
+
+  async function refreshMembers() {
+    const people = await api("/api/members")
+    setMembers(people.members || [])
+  }
+
   function openMember(name) {
     const member = memberByName(name)
     if (member) setProfile(member)
@@ -192,6 +201,7 @@ export default function Community() {
       setDraft("")
       setPhoto("")
       setPicker(false)
+      await refreshMembers()
       notify("Posted to the community.")
     } catch (error) {
       notify(error.message)
@@ -220,6 +230,7 @@ export default function Community() {
       ])
       setShareTarget(null)
       setShareNote("")
+      await refreshMembers()
       notify("Shared to your feed.")
     } catch (error) {
       notify(error.message)
@@ -522,9 +533,7 @@ export default function Community() {
                   <Cover src={member.avatar} alt="" className="h-10 w-10 rounded-full" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm text-white">{member.name}</p>
-                    <p className="truncate text-xs text-zinc-500">
-                      {member.role} · {member.city}
-                    </p>
+                    <p className="truncate text-xs text-zinc-500">{memberDetail(member)}</p>
                   </div>
                 </button>
                 <button
@@ -544,7 +553,7 @@ export default function Community() {
       <Modal
         open={Boolean(profile)}
         title={profile?.name || "Profile"}
-        subtitle={profile ? `${profile.role} · ${profile.city}` : ""}
+        subtitle={profile ? memberDetail(profile) : ""}
         wide
         onClose={() => setProfile(null)}
       >

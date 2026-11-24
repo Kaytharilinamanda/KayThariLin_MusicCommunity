@@ -744,6 +744,9 @@ class HarmonyApiTest extends TestCase
     public function test_member_profile_lists_followers_and_follow_toggles(): void
     {
         $members = collect($this->getJson('/api/members')->assertOk()->json('members'));
+        foreach (['Amanda', 'Sarah', 'David', 'Anna', 'Michael', 'Peter'] as $author) {
+            $this->assertTrue($members->contains('name', $author), $author.' is missing from the member list.');
+        }
         $member = $members->firstWhere('name', 'Michael');
         $this->assertNotNull($member);
         $this->assertSame(0, $member['followers']);
