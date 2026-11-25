@@ -37,8 +37,8 @@ export function AccountLayout() {
                 end={link.end}
                 className={({ isActive }) =>
                   cn(
-                    "group flex items-center gap-3 rounded-2xl px-2.5 py-2 text-sm font-medium outline-none transition duration-200 focus-visible:ring-2 focus-visible:ring-[#a8a29e]",
-                    isActive ? "bg-[#1c1416] text-[#ffffff]" : "text-[#1c1416] hover:bg-[#f5f5f4]",
+                    "group flex items-center gap-3 rounded-2xl px-2.5 py-2 text-sm font-medium outline-none transition duration-200 focus-visible:ring-2 focus-visible:ring-[#fda4af]",
+                    isActive ? "bg-[#ffe4e6] text-[#9f1239]" : "text-[#1c1416] hover:bg-[#fff1f2] hover:text-[#9f1239]",
                   )
                 }
               >
@@ -47,7 +47,7 @@ export function AccountLayout() {
                     <span
                       className={cn(
                         "grid h-8 w-8 shrink-0 place-items-center rounded-xl",
-                        isActive ? "bg-[#ffffff]/15 text-[#ffffff]" : "bg-[#f5f5f4] text-[#1c1416]",
+                        isActive ? "bg-[#fff1f2] text-[#9f1239]" : "bg-[#fff7f7] text-[#9f1239] group-hover:bg-[#ffe4e6]",
                       )}
                     >
                       <Icon className="h-4 w-4" />
